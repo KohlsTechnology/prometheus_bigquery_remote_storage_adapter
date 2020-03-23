@@ -1,39 +1,63 @@
-# YOURPROJECTNAME
+# BigQuery Remote Storage Adapter for Prometheus
 
-Describe what this project is all about.
+This is a write adapter that receives samples via Prometheus's remote write protocol and stores them in Google BigQuery. This adapter is based off code found in the official prometheus repo:
 
-## Installation
+https://github.com/prometheus/prometheus/tree/master/documentation/examples/remote_storage/remote_storage_adapter
 
-Add steps for installing here.
+Remote read is not currently supported by this adapter.
 
-## Documentation
+Billing MUST be enabled on the GCP project with the destination BigQuery tables. This adapter uses the "streaming inserts" API. More information is available here: https://cloud.google.com/bigquery/streaming-data-into-bigquery#before_you_begin
 
-Add documentaiton here, or add a link to
-the full documentation.
 
-## Developing
+The table schema in BigQuery should be the following format:
 
-See [CONTRIBUTING.md](.github/CONTRIBUTING.md)
-for details.
+| Field name | Type | Mode |
+| --- | --- | --- |
+| metricname | STRING | NULLABLE |
+| tags | STRING | NULLABLE |
+| value | FLOAT | NULLABLE |
+| timestamp | TIMESTAMP | NULLABLE |
 
-## License
 
-See [LICENSE](LICENSE) for details.
+It is recommended that the BigQuery table is partitioned on the timestamp column for performance.
 
-**START REMOVE THIS BEFORE RELEASE OF PROJECT**
-
-Each source file must include a header comment
-with the Apache 2.0 license details. The copyright
-section in the header must be filled in with the below
-details.
+The tags field is a json string and can be easily extracted. Here is an example query:
 
 ```
-Copyright 2019 Kohl's Department Stores, Inc. 
+SELECT metricname, tags, JSON_EXTRACT(tags, '$.some_label') 
+  AS some_label, value, timestamp 
+  FROM `your_gcp_project.prometheus.metrics_stream`
+  WHERE JSON_EXTRACT(tags, '$.some_label') = "\\"target_label_value\\""
 ```
-**END REMOVE THIS BEFORE RELEASE OF PROJECT**
 
-## Code of Conduct
+## Building
 
-See [CODE_OF_CONDUCT.md](.github/CODE_OF_CONDUCT.md)
-for details.
+```
+go build
+```
 
+## Running
+
+```
+./bigquery_remote_storage_adapter \
+  --googleAPIjsonkeypath=/secret/gcp_service_account.json \
+  --googleAPIdatasetID=prometheus \
+  --googleAPItableID=metrics_stream
+```
+
+To show all flags:
+
+```
+./bigquery_remote_storage_adapter -h
+```
+
+## Configuring Prometheus
+
+To configure Prometheus to send samples to this binary, add the following to your `prometheus.yml`:
+
+```yaml
+# Remote write configuration (for Google BigQuery).
+remote_write:
+  - url: "http://localhost:9201/write"
+
+```
