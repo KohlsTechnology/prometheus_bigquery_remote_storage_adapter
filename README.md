@@ -8,7 +8,6 @@ Remote read is not currently supported by this adapter.
 
 Billing MUST be enabled on the GCP project with the destination BigQuery tables. This adapter uses the "streaming inserts" API. More information is available here: https://cloud.google.com/bigquery/streaming-data-into-bigquery#before_you_begin
 
-
 The table schema in BigQuery should be the following format:
 
 | Field name | Type | Mode |
@@ -17,7 +16,6 @@ The table schema in BigQuery should be the following format:
 | tags | STRING | NULLABLE |
 | value | FLOAT | NULLABLE |
 | timestamp | TIMESTAMP | NULLABLE |
-
 
 It is recommended that the BigQuery table is partitioned on the timestamp column for performance.
 
@@ -30,7 +28,7 @@ SELECT metricname, tags, JSON_EXTRACT(tags, '$.some_label')
   WHERE JSON_EXTRACT(tags, '$.some_label') = "\\"target_label_value\\""
 ```
 
-## Running
+## Running directly
 
 ```
 ./bigquery_remote_storage_adapter \
@@ -44,6 +42,19 @@ To show all flags:
 ```
 ./bigquery_remote_storage_adapter -h
 ```
+
+## Configuration
+
+You can configure this storage adapter either through command line options or environment variables. The later is required if you're using our docker image.
+
+| Command Line Flag | Environment Variable | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `--googleAPIjsonkeypath` | `PROMBQ_GCP_JSON` | Yes | | Path to json keyfile for GCP service account. JSON keyfile also contains project_id. If omitted, then it'll use the host's credentials. |
+| `--googleAPIdatasetID` | `PROMBQ_DATASET` | Yes | | Dataset name as shown in GCP |
+| `--googleAPItableID` | `PROMBQ_TABLE` | Yes | | Table name as showon in GCP |
+| `--send-timeout` | `PROMBQ_TIMEOUT` | Yes | `30s` | The timeout to use when sending samples to the remote storage |
+| `--web.listen-address` | `PROMBQ_LISTEN` | No | `:9201` | Address to listen on for web endpoints |
+| `--web.telemetry-path` | `PROMBQ_TELEMETRY` | No | `/metrics` | Address to listen on for web endpoints |
 
 ## Configuring Prometheus
 

@@ -98,6 +98,14 @@ func main() {
 
 	level.Info(logger).Log("msg", version.Get())
 
+	level.Info(logger).Log("msg", "Configuration settings:",
+		"googleAPIjsonkeypath", cfg.googleAPIjsonkeypath,
+		"googleAPIdatasetID", cfg.googleAPIdatasetID,
+		"googleAPItableID", cfg.googleAPItableID,
+		"telemetryPath", cfg.telemetryPath,
+		"listenAddr", cfg.listenAddr,
+		"remoteTimeout", cfg.remoteTimeout)
+
 	writers, readers := buildClients(logger, cfg)
 	if err := serve(logger, cfg.listenAddr, writers, readers); err != nil {
 		level.Error(logger).Log("msg", "Failed to listen", "addr", cfg.listenAddr, "err", err)
@@ -114,17 +122,17 @@ func parseFlags() *config {
 	}
 
 	a.Flag("googleAPIjsonkeypath", "Path to json keyfile for GCP service account. JSON keyfile also contains project_id").
-		Default("").StringVar(&cfg.googleAPIjsonkeypath)
+		Envar("PROMBQ_GCP_JSON").StringVar(&cfg.googleAPIjsonkeypath)
 	a.Flag("googleAPIdatasetID", "Dataset name as shown in GCP.").
-		Default("").StringVar(&cfg.googleAPIdatasetID)
+		Envar("PROMBQ_DATASET").StringVar(&cfg.googleAPIdatasetID)
 	a.Flag("googleAPItableID", "Table name as showon in GCP.").
-		Default("").StringVar(&cfg.googleAPItableID)
+		Envar("PROMBQ_TABLE").StringVar(&cfg.googleAPItableID)
 	a.Flag("send-timeout", "The timeout to use when sending samples to the remote storage.").
-		Default("30s").DurationVar(&cfg.remoteTimeout)
+		Envar("PROMBQ_TIMEOUT").Default("30s").DurationVar(&cfg.remoteTimeout)
 	a.Flag("web.listen-address", "Address to listen on for web endpoints.").
-		Default(":9201").StringVar(&cfg.listenAddr)
+		Envar("PROMBQ_LISTEN").Default(":9201").StringVar(&cfg.listenAddr)
 	a.Flag("web.telemetry-path", "Address to listen on for web endpoints.").
-		Default("/metrics").StringVar(&cfg.telemetryPath)
+		Envar("PROMBQ_TELEMETRY").Default("/metrics").StringVar(&cfg.telemetryPath)
 
 	flag.AddFlags(a, &cfg.promlogConfig)
 
