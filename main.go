@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter/bigquerydb"
-	"github.com/ReliabilityEngineering/prometheus_bigquery_remote_storage_adapter/bigquerydb"
+	"github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter/pkg/version"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/gogo/protobuf/proto"
@@ -96,6 +96,8 @@ func main() {
 
 	logger := promlog.New(&cfg.promlogConfig)
 
+	level.Info(logger).Log("msg", version.Get())
+
 	writers, readers := buildClients(logger, cfg)
 	if err := serve(logger, cfg.listenAddr, writers, readers); err != nil {
 		level.Error(logger).Log("msg", "Failed to listen", "addr", cfg.listenAddr, "err", err)
@@ -128,6 +130,7 @@ func parseFlags() *config {
 
 	_, err := a.Parse(os.Args[1:])
 	if err != nil {
+		version.Print()
 		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "Error parsing commandline arguments"))
 		a.Usage(os.Args[1:])
 		os.Exit(2)

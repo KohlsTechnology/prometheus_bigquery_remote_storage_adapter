@@ -1,0 +1,6 @@
+coverage.txt
+dist/
+prometheus_bigquery_remote_storage_adapter
+.idea
+*.swp
+.vscode

@@ -30,12 +30,6 @@ SELECT metricname, tags, JSON_EXTRACT(tags, '$.some_label')
   WHERE JSON_EXTRACT(tags, '$.some_label') = "\\"target_label_value\\""
 ```
 
-## Building
-
-```
-go build
-```
-
 ## Running
 
 ```
@@ -60,4 +54,23 @@ To configure Prometheus to send samples to this binary, add the following to you
 remote_write:
   - url: "http://localhost:9201/write"
 
+```
+
+## Building
+
+```
+go build
+```
+
+### Releases
+This project is using [goreleaser](https://goreleaser.com). GitHub release creation is automated using Travis
+CI. New releases are automatically created when new tags are pushed to the repo.
+```
+$ TAG=v0.0.2 make tag
+```
+
+How to manually create a release without relying on Travis CI.
+```
+$ TAG=v0.0.2 make tag
+$ GITHUB_TOKEN=xxx make clean release
 ```
