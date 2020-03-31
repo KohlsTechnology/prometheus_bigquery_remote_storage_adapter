@@ -28,8 +28,8 @@ dockers:
   - binaries:
     - prometheus_bigquery_remote_storage_adapter
     image_templates:
-      - "kohlstechnology/{{.ProjectName}}:{{ .Tag }}"
-      - "kohlstechnology/{{.ProjectName}}:latest"
+      - "quay.io/kohlstechnology/{{.ProjectName}}:{{ .Tag }}"
+      - "quay.io/kohlstechnology/{{.ProjectName}}:latest"
     build_flag_templates:
       - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.name={{.ProjectName}}"

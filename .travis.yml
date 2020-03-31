@@ -1,43 +1,36 @@
----
 branches:
   only:
-  - master
-  - /^v\d+\.\d+\.\d+$/
-  - travis
+    - master
+    - "/^v\\d+\\.\\d+\\.\\d+$/"
 sudo: required
 language: go
 matrix:
   include:
     - go: 1.14.x
 env:
+  global:
+    - secure: j/acmH3CpQSsD13ofSnuqAEBzFE5SB6v1Sk0+ICXgTeJrzz+N3ohJBiRa10MuEn5+QcFYPF8oGefTbgWVb7iHEMbBI60HQqoLQ7817CDJWxn5nywlE/79IVUuBn+S+TgCXOyj+AG6+4HiRIwCzKDBqIy+TOPs7HH7Tryvhjiu5ievM8wM0+SfElO4BMIZbreCiFpv6at1oUPLSU2G4x6VJ242lXCVdeHCcYahDymA55CQtT1whoutUzDTWbB5YXu7/8IaT+pXl5YicuK1lvxZoJogl+uh58COwWKtWeqxEkvzzRoUjhuIzdNRNldCstVTXDCInZhwEc05e1qddVLluVko2nlQM99e80Llhurg3kK0tgGxA5OpWY/WzEODOY8vyDdCf7Oe/+llNVKyUxnwoDcmHB26Geugoi284Fzqn7qcZMngYvwmxsYcAbkIFfnnNA4FPXwA9556En+bZNX881y6NWyM1rZPnvHHKsPfnszzbZXfXhHzRygLqcn8YczaBzO6AHmbrBva5IrwGBIr372IP2hRvK+UXSUGqO5rCfXHznb5C2A6ew+7eyl9CGCsBw1NoWB76ebsNii1j4O3eLXKBckTRYfAq7+b0fS1HSNZjzVB14Xg2X4JczD5t8FK3d2Z24k6PR/N12QlfZtyEAmxsJG6xWlm1hA87mVQDQ=
+    - secure: F7xb26+IrXNAnh4gV8im/ZfzYdpwy/1X4bDHZE+1mwlHZi3d0POWZVh2gEYzGXTV5TW7I1VaBiLoHktcwe/+a643Op1CwkS2widg06PpspM8BCH1PQXhNwuM5oyX08dI46ak9XWGbFfDUDxYqG2dnbrX2A348/BcF1WPTVb1KLyPXY9PUsS/0dodyZy+f6DeFaaYet60iMCBtO+JbaZvLV8wK6RRMNEKS+VfX36JSgHeOJFTqF+blHI44zKhj0cFDpCh3dZ7gEYu7Crk6G3MDp/dHWjl2ZLR2eSFgIGTnEcxr9Y1g8/diHqfnZFg4MNcJyJS1f/i01B2aQHd4CabX5aBT+4mTB4HMCgawOMJVsHW+ueg3qfzwH9TNGGWc6s86CpSp3Cyu14rD4fvkW6Wk4iWLyFnZVTFSHu9iAMtd1jWTuI4mCIVYejLk2IsEeE9HA3sRObbpJ8CANOhrztbqN940hK1wxOUguQnp2rFXLrfShTvRG7PayObfEi1ldlPhykM/aG0kptqi7RpDs308wpqwIPH9P/FNRUx90T6D0w0bJL0PqOXl178fBYoZmadQEGiMcIW2vRX7Jb9qXGH40hpybE0yK7gJNZswz+nF7xJc1A/A+RZKYnrYhvB9XzJW6J6GOrS7dMVuyLtPgLqm0HpT+S05LGwnIDlK+VWqM4=
+    - secure: IIvo7LPL1HUcDPy8KQBp2p0+5EiM+cMMpFEUI2tiTNVOQ4YpXTFqIaaM3Rq7UrjAQJkAKRDGXJbTJL2fiuR6U2SrSPCbLe5fMyFnNyMbic4jZdq2NF7r1Y+KKUvTnwt//e2Qas7es/5BIoCjZXJT8g2nyzFspQ2+3/o++Chcj/lG9191GodTgCIymMJcEbqty+sThdW+qRJO5XSEfZnm9TFiskD7VveFGh0bPNVYYrKtbGoSnT7jTSx3Vbvxvs0Jd4J+OajgTP8T/v2fd5L1Ftg5j0WAbA/P/NtEbGJNmUf2Fbzlf2xfvz2rOTjqLQQOUclxsXIxdyNusXgpCtz4BLjafj7fJAcXXDFYjKlZRLFVjPsOoOxSXvWCVnYoKISEBX7W/6NoDFTMPORY+pIlp/OXA3jjkREoJnMZiCdzjYuG0kX2/mQYHQ1qC9qSNRiOmE0oYvS+lr7e7b4addDTVjq6MgkAJkAoX66S4gFHMd6Bs66U/u7ajtxum2/pvWN198IBD832MJPkeamIIP/QfV1GX5KWQWaqxHAn6ylRw+Z1uxpY/8stF/QaQvHm/95vSixmpqRh5jqXxbkp+nHDldTKdr23Ruya2rwkPa2I0ZH3B47iIQb/UrD6Y/xoI2mAZWbq0J6KaVu4HxMxpH2+j9h35EXSeVAwUxq3sb/WJi8=
   matrix:
-  - GO_RELEASER_VERSION=v0.129.0
-
+    - GO_RELEASER_VERSION=v0.129.0
 services:
-- docker
-
+  - docker
 before_install:
   - GO111MODULE=off go get golang.org/x/lint/golint
   - curl -L -o /tmp/goreleaser.tar.gz https://github.com/goreleaser/goreleaser/releases/download/${GO_RELEASER_VERSION}/goreleaser_Linux_x86_64.tar.gz
   - sudo tar -xzf /tmp/goreleaser.tar.gz -C /usr/local/bin/ && sudo chmod +x /usr/local/bin/goreleaser
-
 install:
-  - # skip
-
+  -
 script:
   - make test-dirty
   - make test-release
-# we can't automatically test right now, due to the need for BigQuery
-#  - make test
-
 after_success:
-  - bash <(curl -s https://codecov.io/bash)
-
-# Calls goreleaser to build and push artifacts
+  - test -n "$TRAVIS_TAG" && docker login -u="$QUAYIO_USER" -p="$QUAYIO_SECRET" quay.io
 deploy:
-- provider: script
-  skip_cleanup: true
-  script: make clean release
-  on:
-    tags: true
-    condition: $TRAVIS_OS_NAME = linux
+  - provider: script
+    skip_cleanup: true
+    script: make clean release
+    on:
+      tags: true
+      condition: "$TRAVIS_OS_NAME = linux"

@@ -1,5 +1,10 @@
 # BigQuery Remote Storage Adapter for Prometheus
 
+[![Build Status](https://travis-ci.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter.svg?branch=master)](https://travis-ci.com/KohlsTechnology/eunomia)
+[![Go Report Card](https://goreportcard.com/badge/github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter)](https://goreportcard.com/report/github.com/KohlsTechnology/eunomia)
+[![Docker Repository on Quay](https://quay.io/repository/kohlstechnology/prometheus_bigquery_remote_storage_adapter/status "Docker Repository on Quay")](https://quay.io/repository/kohlstechnology/prometheus_bigquery_remote_storage_adapter)
+
+
 This is a write adapter that receives samples via Prometheus's remote write protocol and stores them in Google BigQuery. This adapter is based off code found in the official prometheus repo:
 
 https://github.com/prometheus/prometheus/tree/master/documentation/examples/remote_storage/remote_storage_adapter
