@@ -28,4 +28,10 @@ dockers:
   - binaries:
     - prometheus_bigquery_remote_storage_adapter
     image_templates:
-      - "kohlstechnology/{{.ProjectName}}"
+      - "kohlstechnology/{{.ProjectName}}:{{ .Tag }}"
+      - "kohlstechnology/{{.ProjectName}}:latest"
+    build_flag_templates:
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.name={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
