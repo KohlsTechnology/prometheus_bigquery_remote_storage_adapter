@@ -1,4 +1,4 @@
-module github.com/ReliabilityEngineering/prometheus_bigquery_remote_storage_adapter
+module github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter
 
 go 1.14
 

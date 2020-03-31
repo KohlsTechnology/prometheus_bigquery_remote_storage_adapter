@@ -8,7 +8,7 @@ LDFLAGS := "-X ${VERSION_PKG}.Branch=${BRANCH} -X ${VERSION_PKG}.BuildDate=${DAT
 TAG?=""
 
 .PHONY: all
-all: build
+all: build image
 
 .PHONY: clean
 clean:
@@ -17,6 +17,10 @@ clean:
 .PHONY: build
 build:
 	CGO_ENABLED=0 go build -o $(BINARY) -ldflags $(LDFLAGS)
+
+.PHONY: image
+image:
+	docker build . -t quay.io/kohlstechnology/prometheus_bigquery_remote_storage_adapter:latest
 
 .PHONY: test
 test: fmt vet test-unit

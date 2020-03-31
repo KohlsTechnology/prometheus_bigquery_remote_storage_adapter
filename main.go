@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter/bigquerydb"
-	"github.com/ReliabilityEngineering/prometheus_bigquery_remote_storage_adapter/bigquerydb"
+	"github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter/pkg/version"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/gogo/protobuf/proto"
@@ -50,6 +50,7 @@ type config struct {
 	listenAddr           string
 	telemetryPath        string
 	promlogConfig        promlog.Config
+	printVersion         bool
 }
 
 var (
@@ -92,9 +93,25 @@ func init() {
 
 func main() {
 	cfg := parseFlags()
+
+	if cfg.printVersion {
+		version.Print()
+		os.Exit(0)
+	}
+
 	http.Handle(cfg.telemetryPath, promhttp.Handler())
 
 	logger := promlog.New(&cfg.promlogConfig)
+
+	level.Info(logger).Log("msg", version.Get())
+
+	level.Info(logger).Log("msg", "Configuration settings:",
+		"googleAPIjsonkeypath", cfg.googleAPIjsonkeypath,
+		"googleAPIdatasetID", cfg.googleAPIdatasetID,
+		"googleAPItableID", cfg.googleAPItableID,
+		"telemetryPath", cfg.telemetryPath,
+		"listenAddr", cfg.listenAddr,
+		"remoteTimeout", cfg.remoteTimeout)
 
 	writers, readers := buildClients(logger, cfg)
 	if err := serve(logger, cfg.listenAddr, writers, readers); err != nil {
@@ -111,18 +128,20 @@ func parseFlags() *config {
 		promlogConfig: promlog.Config{},
 	}
 
+	a.Flag("version", "Print version and build information, then exit").
+		Default("false").BoolVar(&cfg.printVersion)
 	a.Flag("googleAPIjsonkeypath", "Path to json keyfile for GCP service account. JSON keyfile also contains project_id").
-		Default("").StringVar(&cfg.googleAPIjsonkeypath)
+		Envar("PROMBQ_GCP_JSON").Required().ExistingFileVar(&cfg.googleAPIjsonkeypath)
 	a.Flag("googleAPIdatasetID", "Dataset name as shown in GCP.").
-		Default("").StringVar(&cfg.googleAPIdatasetID)
+		Envar("PROMBQ_DATASET").Required().StringVar(&cfg.googleAPIdatasetID)
 	a.Flag("googleAPItableID", "Table name as showon in GCP.").
-		Default("").StringVar(&cfg.googleAPItableID)
+		Envar("PROMBQ_TABLE").Required().StringVar(&cfg.googleAPItableID)
 	a.Flag("send-timeout", "The timeout to use when sending samples to the remote storage.").
-		Default("30s").DurationVar(&cfg.remoteTimeout)
+		Envar("PROMBQ_TIMEOUT").Default("30s").DurationVar(&cfg.remoteTimeout)
 	a.Flag("web.listen-address", "Address to listen on for web endpoints.").
-		Default(":9201").StringVar(&cfg.listenAddr)
+		Envar("PROMBQ_LISTEN").Default(":9201").StringVar(&cfg.listenAddr)
 	a.Flag("web.telemetry-path", "Address to listen on for web endpoints.").
-		Default("/metrics").StringVar(&cfg.telemetryPath)
+		Envar("PROMBQ_TELEMETRY").Default("/metrics").StringVar(&cfg.telemetryPath)
 
 	flag.AddFlags(a, &cfg.promlogConfig)
 

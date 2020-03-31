@@ -56,7 +56,6 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleAPIdatasetID, goog
 	var result map[string]interface{}
 	json.Unmarshal([]byte(byteValue), &result)
 
-	//fmt.Println(result["type"])
 	jsonFile.Close()
 
 	projectID := fmt.Sprintf("%v", result["project_id"])
