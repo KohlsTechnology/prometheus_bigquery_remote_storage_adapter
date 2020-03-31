@@ -1,9 +1,8 @@
 # BigQuery Remote Storage Adapter for Prometheus
 
-[![Build Status](https://travis-ci.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter.svg?branch=master)](https://travis-ci.com/KohlsTechnology/eunomia)
-[![Go Report Card](https://goreportcard.com/badge/github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter)](https://goreportcard.com/report/github.com/KohlsTechnology/eunomia)
+[![Build Status](https://travis-ci.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter.svg?branch=master)](https://travis-ci.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter)
+[![Go Report Card](https://goreportcard.com/badge/github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter)](https://goreportcard.com/report/github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter)
 [![Docker Repository on Quay](https://quay.io/repository/kohlstechnology/prometheus_bigquery_remote_storage_adapter/status "Docker Repository on Quay")](https://quay.io/repository/kohlstechnology/prometheus_bigquery_remote_storage_adapter)
-
 
 This is a write adapter that receives samples via Prometheus's remote write protocol and stores them in Google BigQuery. This adapter is based off code found in the official prometheus repo:
 
@@ -74,11 +73,24 @@ remote_write:
 
 ## Building
 
+### Binary
+
+If you just need a local version to test, then the simplest way is to execute:
+
 ```
-go build
+make build
 ```
 
-### Releases
+### Image
+
+In order to build the docker image, simply execute
+
+```
+make image
+```
+
+## Releasing
+
 This project is using [goreleaser](https://goreleaser.com). GitHub release creation is automated using Travis
 CI. New releases are automatically created when new tags are pushed to the repo.
 ```
@@ -89,4 +101,12 @@ How to manually create a release without relying on Travis CI.
 ```
 $ TAG=v0.0.2 make tag
 $ GITHUB_TOKEN=xxx make clean release
+```
+
+### Testing
+
+You can execute goreleaser locally in order to test any changes.
+
+```
+make clean test-release
 ```
