@@ -26,7 +26,7 @@ var (
 	Branch    string
 	BuildDate string
 	GitSHA1   string
-	Version   = "v0.0.1-dev"
+	Version   = "v0.1.0"
 )
 
 // Print writes application version details to standard output.
