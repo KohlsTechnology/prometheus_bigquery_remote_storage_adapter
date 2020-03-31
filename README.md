@@ -53,7 +53,7 @@ You can configure this storage adapter either through command line options or en
 
 | Command Line Flag | Environment Variable | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `--googleAPIjsonkeypath` | `PROMBQ_GCP_JSON` | Yes | | Path to json keyfile for GCP service account. JSON keyfile also contains project_id. If omitted, then it'll use the host's credentials. |
+| `--googleAPIjsonkeypath` | `PROMBQ_GCP_JSON` | Yes | | Path to json keyfile for GCP service account. JSON keyfile also contains project_id. |
 | `--googleAPIdatasetID` | `PROMBQ_DATASET` | Yes | | Dataset name as shown in GCP |
 | `--googleAPItableID` | `PROMBQ_TABLE` | Yes | | Table name as showon in GCP |
 | `--send-timeout` | `PROMBQ_TIMEOUT` | No | `30s` | The timeout to use when sending samples to the remote storage |
