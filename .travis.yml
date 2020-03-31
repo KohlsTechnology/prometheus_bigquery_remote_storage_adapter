@@ -3,6 +3,7 @@ branches:
   only:
   - master
   - /^v\d+\.\d+\.\d+$/
+  - travis
 sudo: required
 language: go
 matrix:
