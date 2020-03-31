@@ -50,6 +50,7 @@ type config struct {
 	listenAddr           string
 	telemetryPath        string
 	promlogConfig        promlog.Config
+	printVersion         bool
 }
 
 var (
@@ -92,6 +93,12 @@ func init() {
 
 func main() {
 	cfg := parseFlags()
+
+	if cfg.printVersion {
+		version.Print()
+		os.Exit(0)
+	}
+
 	http.Handle(cfg.telemetryPath, promhttp.Handler())
 
 	logger := promlog.New(&cfg.promlogConfig)
@@ -121,12 +128,14 @@ func parseFlags() *config {
 		promlogConfig: promlog.Config{},
 	}
 
+	a.Flag("version", "Print version and build information, then exit").
+		Default("false").BoolVar(&cfg.printVersion)
 	a.Flag("googleAPIjsonkeypath", "Path to json keyfile for GCP service account. JSON keyfile also contains project_id").
-		Envar("PROMBQ_GCP_JSON").StringVar(&cfg.googleAPIjsonkeypath)
+		Envar("PROMBQ_GCP_JSON").Required().ExistingFileVar(&cfg.googleAPIjsonkeypath)
 	a.Flag("googleAPIdatasetID", "Dataset name as shown in GCP.").
-		Envar("PROMBQ_DATASET").StringVar(&cfg.googleAPIdatasetID)
+		Envar("PROMBQ_DATASET").Required().StringVar(&cfg.googleAPIdatasetID)
 	a.Flag("googleAPItableID", "Table name as showon in GCP.").
-		Envar("PROMBQ_TABLE").StringVar(&cfg.googleAPItableID)
+		Envar("PROMBQ_TABLE").Required().StringVar(&cfg.googleAPItableID)
 	a.Flag("send-timeout", "The timeout to use when sending samples to the remote storage.").
 		Envar("PROMBQ_TIMEOUT").Default("30s").DurationVar(&cfg.remoteTimeout)
 	a.Flag("web.listen-address", "Address to listen on for web endpoints.").
@@ -138,7 +147,6 @@ func parseFlags() *config {
 
 	_, err := a.Parse(os.Args[1:])
 	if err != nil {
-		version.Print()
 		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "Error parsing commandline arguments"))
 		a.Usage(os.Args[1:])
 		os.Exit(2)

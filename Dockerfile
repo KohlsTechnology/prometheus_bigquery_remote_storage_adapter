@@ -1,4 +1,4 @@
-FROM gcr.io/distroless/static
+FROM gcr.io/distroless/static:nonroot
 
 COPY ./prometheus_bigquery_remote_storage_adapter /bigquery_remote_storage_adapter
 
