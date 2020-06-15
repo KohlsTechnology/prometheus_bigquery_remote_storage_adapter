@@ -197,7 +197,7 @@ func (c *BigqueryClient) Read(req *prompb.ReadRequest) (*prompb.ReadResponse, er
 		query := c.client.Query(command)
 		ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 		iter, err := query.Read(ctx)
-		level.Debug(c.logger).Log("msg", "BiQuery query", "rows received", iter.TotalRows)
+		level.Debug(c.logger).Log("msg", "BigQuery SQL query", "rows received", iter.TotalRows)
 		defer cancel()
 
 		if err != nil {
@@ -205,12 +205,9 @@ func (c *BigqueryClient) Read(req *prompb.ReadRequest) (*prompb.ReadResponse, er
 		}
 
 		tsList, err := rowsToTimeseries(iter)
-
-		// for _, ts := range tsList {
-		// 	c.metrics.Samples["read"].Observe(float64(len(ts.Samples)))
-		// 	// Prometheus wants its samples to be sorted with it receives them.
-		// 	sort.Slice(ts.Samples, func(i, j int) bool { return ts.Samples[i].Timestamp < ts.Samples[j].Timestamp })
-		// }
+		if err != nil {
+			return nil, err
+		}
 
 		readResp.Results = append(readResp.Results, &prompb.QueryResult{Timeseries: tsList})
 	}
@@ -277,10 +274,9 @@ func rowsToTimeseries(iter *bigquery.RowIterator) ([]*prompb.TimeSeries, error) 
 		if err != nil {
 			return nil, err
 		}
-		sample, metric, labels, err := rowToSample(row)
-		if err != nil {
-			return nil, err
-		}
+
+		sample, metric, labels := rowToSample(row)
+
 		fp := metric.Fingerprint()
 		if _, ok := tsMap[fp]; !ok {
 			tsMap[fp] = &prompb.TimeSeries{Labels: labels}
@@ -292,7 +288,7 @@ func rowsToTimeseries(iter *bigquery.RowIterator) ([]*prompb.TimeSeries, error) 
 }
 
 // rowToSample converts a BigQuery row to a sample and also processes the labels for later consumption
-func rowToSample(row map[string]bigquery.Value) (*prompb.Sample, model.Metric, []*prompb.Label, error) {
+func rowToSample(row map[string]bigquery.Value) (*prompb.Sample, model.Metric, []*prompb.Label) {
 	var v interface{}
 	labelsJSON := row["tags"].(string)
 	json.Unmarshal([]byte(labelsJSON), &v)
@@ -311,7 +307,7 @@ func rowToSample(row map[string]bigquery.Value) (*prompb.Sample, model.Metric, [
 		Value: row["metricname"].(string),
 	})
 	metric[model.LabelName(model.MetricNameLabel)] = model.LabelValue(row["metricname"].(string))
-	return &prompb.Sample{Timestamp: row["timestamp"].(time.Time).Unix(), Value: row["value"].(float64)}, metric, labelPairs, nil
+	return &prompb.Sample{Timestamp: row["timestamp"].(time.Time).Unix(), Value: row["value"].(float64)}, metric, labelPairs
 }
 
 // orderTimeSeries sole purpose is to make Prometheus happy
