@@ -256,7 +256,7 @@ func (c *BigqueryClient) buildCommand(q *prompb.Query) (string, error) {
 	matchers = append(matchers, fmt.Sprintf("timestamp >= TIMESTAMP_MILLIS(%v)", q.StartTimestampMs))
 	matchers = append(matchers, fmt.Sprintf("timestamp <= TIMESTAMP_MILLIS(%v)", q.EndTimestampMs))
 
-	query := fmt.Sprintf("SELECT metricname, tags, timestamp, value FROM %s.%s WHERE %v ORDER BY timestamp", c.datasetID, c.tableID, strings.Join(matchers, " AND "))
+	query := fmt.Sprintf("SELECT metricname, tags, timestamp, value FROM %s.%s WHERE %v", c.datasetID, c.tableID, strings.Join(matchers, " AND "))
 	level.Debug(c.logger).Log("msg", "BiQuery read", "sql query", query)
 
 	return query, nil
