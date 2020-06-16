@@ -20,14 +20,18 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/prompb"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
 
@@ -87,10 +91,10 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleAPIdatasetID, goog
 
 // Item represents a row item.
 type Item struct {
-	value      float64
-	metricname string
-	timestamp  time.Time
-	tags       string
+	value      float64   `bigquery:"value"`
+	metricname string    `bigquery:"metricname"`
+	timestamp  time.Time `bigquery:"timestamp"`
+	tags       string    `bigquery:"tags"`
 }
 
 // Save implements the ValueSaver interface.
@@ -179,4 +183,152 @@ func (c *BigqueryClient) Describe(ch chan<- *prometheus.Desc) {
 // Collect implements prometheus.Collector.
 func (c *BigqueryClient) Collect(ch chan<- prometheus.Metric) {
 	ch <- c.ignoredSamples
+}
+
+// Read queries the database and returns the results to Prometheus
+func (c *BigqueryClient) Read(req *prompb.ReadRequest) (*prompb.ReadResponse, error) {
+	readResp := &prompb.ReadResponse{Results: []*prompb.QueryResult{}}
+	for _, q := range req.Queries {
+		command, err := c.buildCommand(q)
+		if err != nil {
+			return nil, err
+		}
+
+		query := c.client.Query(command)
+		ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+		iter, err := query.Read(ctx)
+		level.Debug(c.logger).Log("msg", "BigQuery SQL query", "rows received", iter.TotalRows)
+		defer cancel()
+
+		if err != nil {
+			return nil, err
+		}
+
+		tsList, err := rowsToTimeseries(iter)
+		if err != nil {
+			return nil, err
+		}
+
+		readResp.Results = append(readResp.Results, &prompb.QueryResult{Timeseries: tsList})
+	}
+
+	return readResp, nil
+}
+
+// BuildCommand generates the proper SQL for the query
+func (c *BigqueryClient) buildCommand(q *prompb.Query) (string, error) {
+	matchers := make([]string, 0, len(q.Matchers))
+	for _, m := range q.Matchers {
+		// Metric Names
+		if m.Name == model.MetricNameLabel {
+			switch m.Type {
+			case prompb.LabelMatcher_EQ:
+				matchers = append(matchers, fmt.Sprintf("metricname = '%s'", escapeSingleQuotes(m.Value)))
+			case prompb.LabelMatcher_NEQ:
+				matchers = append(matchers, fmt.Sprintf("metricname != '%s'", escapeSingleQuotes(m.Value)))
+			case prompb.LabelMatcher_RE:
+				matchers = append(matchers, fmt.Sprintf("REGEXP_CONTAINS(metricname, r'%s')", escapeSlashes(m.Value)))
+			case prompb.LabelMatcher_NRE:
+				matchers = append(matchers, fmt.Sprintf("not REGEXP_CONTAINS(metricname, r'%s')", escapeSlashes(m.Value)))
+			default:
+				return "", errors.Errorf("unknown match type %v", m.Type)
+			}
+			continue
+		}
+
+		// Labels
+		switch m.Type {
+		case prompb.LabelMatcher_EQ:
+			matchers = append(matchers, fmt.Sprintf("JSON_EXTRACT(tags, '$.%q') = '%s')", m.Name, escapeSingleQuotes(m.Value)))
+		case prompb.LabelMatcher_NEQ:
+			matchers = append(matchers, fmt.Sprintf("JSON_EXTRACT(tags, '$.%q') = '%s')", m.Name, escapeSingleQuotes(m.Value)))
+		case prompb.LabelMatcher_RE:
+			matchers = append(matchers, fmt.Sprintf("REGEXP_CONTAINS(JSON_EXTRACT(tags, '$.%q'), r'%s')", m.Name, escapeSlashes(m.Value)))
+		case prompb.LabelMatcher_NRE:
+			matchers = append(matchers, fmt.Sprintf("not REGEXP_CONTAINS(JSON_EXTRACT(tags, '$.%q'), r'%s')", m.Name, escapeSlashes(m.Value)))
+		default:
+			return "", errors.Errorf("unknown match type %v", m.Type)
+		}
+	}
+	matchers = append(matchers, fmt.Sprintf("timestamp >= TIMESTAMP_MILLIS(%v)", q.StartTimestampMs))
+	matchers = append(matchers, fmt.Sprintf("timestamp <= TIMESTAMP_MILLIS(%v)", q.EndTimestampMs))
+
+	query := fmt.Sprintf("SELECT metricname, tags, timestamp, value FROM %s.%s WHERE %v", c.datasetID, c.tableID, strings.Join(matchers, " AND "))
+	level.Debug(c.logger).Log("msg", "BiQuery read", "sql query", query)
+
+	return query, nil
+}
+
+// rowsToTimeseries iterates over the BigQuery data and creates time series for Prometheus
+func rowsToTimeseries(iter *bigquery.RowIterator) ([]*prompb.TimeSeries, error) {
+	if iter == nil {
+		return nil, nil
+	}
+	tsMap := make(map[model.Fingerprint]*prompb.TimeSeries)
+	for {
+		row := make(map[string]bigquery.Value)
+		err := iter.Next(&row)
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		sample, metric, labels := rowToSample(row)
+
+		fp := metric.Fingerprint()
+		if _, ok := tsMap[fp]; !ok {
+			tsMap[fp] = &prompb.TimeSeries{Labels: labels}
+		}
+		tsMap[fp].Samples = append(tsMap[fp].Samples, *sample)
+	}
+
+	return orderTimeSeries(tsMap), nil
+}
+
+// rowToSample converts a BigQuery row to a sample and also processes the labels for later consumption
+func rowToSample(row map[string]bigquery.Value) (*prompb.Sample, model.Metric, []*prompb.Label) {
+	var v interface{}
+	labelsJSON := row["tags"].(string)
+	json.Unmarshal([]byte(labelsJSON), &v)
+	labels := v.(map[string]interface{})
+	labelPairs := make([]*prompb.Label, 0, len(labels))
+	metric := model.Metric{}
+	for name, value := range labels {
+		labelPairs = append(labelPairs, &prompb.Label{
+			Name:  name,
+			Value: value.(string),
+		})
+		metric[model.LabelName(name)] = model.LabelValue(value.(string))
+	}
+	labelPairs = append(labelPairs, &prompb.Label{
+		Name:  model.MetricNameLabel,
+		Value: row["metricname"].(string),
+	})
+	metric[model.LabelName(model.MetricNameLabel)] = model.LabelValue(row["metricname"].(string))
+	return &prompb.Sample{Timestamp: row["timestamp"].(time.Time).Unix(), Value: row["value"].(float64)}, metric, labelPairs
+}
+
+// orderTimeSeries sole purpose is to make Prometheus happy
+func orderTimeSeries(tsMap map[model.Fingerprint]*prompb.TimeSeries) []*prompb.TimeSeries {
+	fps := make([]model.Fingerprint, 0, len(tsMap))
+	for fp := range tsMap {
+		fps = append(fps, fp)
+	}
+	sort.Slice(fps, func(i, j int) bool { return fps[i] < fps[j] })
+	// Convert timeseries map to a list.
+	tsList := make([]*prompb.TimeSeries, 0, len(tsMap))
+	for _, fp := range fps {
+		tsList = append(tsList, tsMap[fp])
+	}
+	return tsList
+}
+
+func escapeSingleQuotes(str string) string {
+	return strings.Replace(str, `'`, `\'`, -1)
+}
+
+func escapeSlashes(str string) string {
+	return strings.Replace(str, `/`, `\/`, -1)
 }

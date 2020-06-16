@@ -8,8 +8,6 @@ This is a write adapter that receives samples via Prometheus's remote write prot
 
 https://github.com/prometheus/prometheus/tree/master/documentation/examples/remote_storage/remote_storage_adapter
 
-Remote read is not currently supported by this adapter.
-
 Billing MUST be enabled on the GCP project with the destination BigQuery tables. This adapter uses the "streaming inserts" API. More information is available here: https://cloud.google.com/bigquery/streaming-data-into-bigquery#before_you_begin
 
 The table schema in BigQuery should be the following format:
@@ -68,6 +66,10 @@ To configure Prometheus to send samples to this binary, add the following to you
 # Remote write configuration (for Google BigQuery).
 remote_write:
   - url: "http://localhost:9201/write"
+
+# Remote write configuration (for Google BigQuery).
+remote_read:
+  - url: "http://localhost:9201/read"
 
 ```
 

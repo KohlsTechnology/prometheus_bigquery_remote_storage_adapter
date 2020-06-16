@@ -177,6 +177,7 @@ func buildClients(logger log.Logger, cfg *config) ([]writer, []reader) {
 			cfg.remoteTimeout)
 		prometheus.MustRegister(c)
 		writers = append(writers, c)
+		readers = append(readers, c)
 	}
 	level.Info(logger).Log("msg", "Starting up...")
 	return writers, readers
