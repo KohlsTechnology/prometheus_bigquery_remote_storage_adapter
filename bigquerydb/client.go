@@ -239,13 +239,13 @@ func (c *BigqueryClient) buildCommand(q *prompb.Query) (string, error) {
 		// Labels
 		switch m.Type {
 		case prompb.LabelMatcher_EQ:
-			matchers = append(matchers, fmt.Sprintf("JSON_EXTRACT(tags, '$.%q') = '%s')", m.Name, escapeSingleQuotes(m.Value)))
+			matchers = append(matchers, fmt.Sprintf(`JSON_EXTRACT(tags, '$.%s') = '"%s"'`, m.Name, m.Value))
 		case prompb.LabelMatcher_NEQ:
-			matchers = append(matchers, fmt.Sprintf("JSON_EXTRACT(tags, '$.%q') = '%s')", m.Name, escapeSingleQuotes(m.Value)))
+			matchers = append(matchers, fmt.Sprintf(`JSON_EXTRACT(tags, '$.%s') = '"%s"'`, m.Name, m.Value))
 		case prompb.LabelMatcher_RE:
-			matchers = append(matchers, fmt.Sprintf("REGEXP_CONTAINS(JSON_EXTRACT(tags, '$.%q'), r'%s')", m.Name, escapeSlashes(m.Value)))
+			matchers = append(matchers, fmt.Sprintf(`REGEXP_CONTAINS(JSON_EXTRACT(tags, '$.%s'), r'"%s"')`, m.Name, m.Value))
 		case prompb.LabelMatcher_NRE:
-			matchers = append(matchers, fmt.Sprintf("not REGEXP_CONTAINS(JSON_EXTRACT(tags, '$.%q'), r'%s')", m.Name, escapeSlashes(m.Value)))
+			matchers = append(matchers, fmt.Sprintf(`not REGEXP_CONTAINS(JSON_EXTRACT(tags, '$.%s'), r'"%s"')`, m.Name, m.Value))
 		default:
 			return "", errors.Errorf("unknown match type %v", m.Type)
 		}
@@ -254,7 +254,7 @@ func (c *BigqueryClient) buildCommand(q *prompb.Query) (string, error) {
 	matchers = append(matchers, fmt.Sprintf("timestamp <= TIMESTAMP_MILLIS(%v)", q.EndTimestampMs))
 
 	query := fmt.Sprintf("SELECT metricname, tags, timestamp, value FROM %s.%s WHERE %v", c.datasetID, c.tableID, strings.Join(matchers, " AND "))
-	level.Debug(c.logger).Log("msg", "BiQuery read", "sql query", query)
+	level.Debug(c.logger).Log("msg", "BigQuery read", "sql query", query)
 
 	return query, nil
 }
