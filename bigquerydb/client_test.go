@@ -17,13 +17,18 @@ import (
 	"flag"
 	"fmt"
 	"math"
+	"os"
 	"testing"
 	"time"
 
-	"github.com/prometheus/common/model"
+	"github.com/go-kit/kit/log"
+	"github.com/prometheus/prometheus/prompb"
+	"github.com/stretchr/testify/assert"
 )
 
-// example call: go test -v -args -googleAPIjsonkeypath=../../project-credential.json -googleAPIdatasetID=prometheus_test -googleAPItableID=test_stream
+// example call: go test -v -args -googleAPIjsonkeypath=../../project-credential.json -googleAPIdatasetID=prometheus_test -googleAPItableID=test_stream ./...
+
+var logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
 
 var googleAPIjsonkeypath string
 var googleAPIdatasetID string
@@ -35,63 +40,166 @@ func init() {
 	flag.StringVar(&googleAPItableID, "googleAPItableID", "baz", "Table name as shown in GCP.")
 }
 
-func TestClient(t *testing.T) {
+func TestNaN(t *testing.T) {
 
-	samples := model.Samples{
+	nowUnix := time.Now().Unix() * 1000
+
+	timeseriesGood := []*prompb.TimeSeries{
 		{
-			Metric: model.Metric{
-				model.MetricNameLabel: "testmetric",
-				"test_label":          "test_label_value1",
+			Labels: []*prompb.Label{
+				{
+					Name:  "__name__",
+					Value: "test_metric",
+				},
+				{
+					Name:  "label",
+					Value: "goodvalue",
+				},
+				{
+					Name:  "test",
+					Value: "TestNaN",
+				},
 			},
-			//Timestamp: model.Time(123456789123),
-			Timestamp: model.Time(time.Now().Unix()),
-			Value:     1.23,
-		},
-		{
-			Metric: model.Metric{
-				model.MetricNameLabel: "testmetric",
-				"test_label":          "test_label_value2",
+			Samples: []prompb.Sample{
+				{
+					Timestamp: nowUnix,
+					Value:     1,
+				},
 			},
-			Timestamp: model.Time(123456789123),
-			Value:     5.1234,
 		},
-		{
-			Metric: model.Metric{
-				model.MetricNameLabel: "nan_value",
-			},
-			Timestamp: model.Time(123456789123),
-			Value:     model.SampleValue(math.NaN()),
-		},
-		// {
-		// 	Metric: model.Metric{
-		// 		model.MetricNameLabel: "pos_inf_value",
-		// 	},
-		// 	Timestamp: model.Time(123456789123),
-		// 	Value:     model.SampleValue(math.Inf(1)),
-		// },
-		// {
-		// 	Metric: model.Metric{
-		// 		model.MetricNameLabel: "neg_inf_value",
-		// 	},
-		// 	Timestamp: model.Time(123456789123),
-		// 	Value:     model.SampleValue(math.Inf(-1)),
-		// },
-		// {
-		// 	Metric: model.Metric{
-		// 		model.MetricNameLabel: "partial",
-		// 	},
-		// },
 	}
-
-	//expectedBody := `testmetric,test_label=test_label_value1 value=1.23 123456789123
-	//testmetric,test_label=test_label_value2 value=5.1234 123456789123
-	//`
+	timeseriesNaN := []*prompb.TimeSeries{
+		{
+			Labels: []*prompb.Label{
+				{
+					Name:  "__name__",
+					Value: "test_metric",
+				},
+				{
+					Name:  "label",
+					Value: "NaN",
+				},
+				{
+					Name:  "test",
+					Value: "TestNaN",
+				},
+			},
+			Samples: []prompb.Sample{
+				{
+					Timestamp: nowUnix,
+					Value:     math.NaN(),
+				},
+			},
+		},
+	}
 
 	thirtysecondtimeout, _ := time.ParseDuration("30s")
 
-	c := NewClient(nil, googleAPIjsonkeypath, googleAPIdatasetID, googleAPItableID, thirtysecondtimeout)
+	bqclient := NewClient(logger, googleAPIjsonkeypath, googleAPIdatasetID, googleAPItableID, thirtysecondtimeout)
 
-	if err := c.Write(samples); err != nil {
+	if err := bqclient.Write(timeseriesGood); err != nil {
 		fmt.Println("Error sending samples: ", err)
 	}
+	if err := bqclient.Write(timeseriesNaN); err != nil {
+		fmt.Println("Error sending samples: ", err)
+	}
+
+	request := prompb.ReadRequest{
+		Queries: []*prompb.Query{
+			{
+				StartTimestampMs: nowUnix,
+				EndTimestampMs:   nowUnix + 10000,
+				Matchers: []*prompb.LabelMatcher{
+					{
+						Type:  prompb.LabelMatcher_EQ,
+						Name:  "test",
+						Value: "TestNaN",
+					},
+				},
+			},
+		},
+	}
+
+	result, err := bqclient.Read(&request)
+
+	assert.Nil(t, err, "failed to process query")
+	assert.Len(t, result.Results, 1)
+	assert.Len(t, result.Results[0].Timeseries, 1)
+	assert.Len(t, result.Results[0].Timeseries[0].Samples, 1)
+	assert.Equal(t, timeseriesGood, result.Results[0].Timeseries)
+
+}
+
+func TestWriteRead(t *testing.T) {
+	nowUnix := time.Now().Unix() * 1000
+
+	timeseries := []*prompb.TimeSeries{
+		{
+			Labels: []*prompb.Label{
+				{
+					Name:  "__name__",
+					Value: "test_metric",
+				},
+				{
+					Name:  "label_1",
+					Value: "value_1",
+				},
+				{
+					Name:  "label_2",
+					Value: "value_2",
+				},
+				{
+					Name:  "test",
+					Value: "TestWriteRead",
+				},
+			},
+			Samples: []prompb.Sample{
+				{
+					Timestamp: nowUnix,
+					Value:     1,
+				},
+				{
+					Timestamp: nowUnix + 2000,
+					Value:     2,
+				},
+				{
+					Timestamp: nowUnix + 3000,
+					Value:     3,
+				},
+			},
+		},
+	}
+
+	thirtysecondtimeout, _ := time.ParseDuration("30s")
+
+	bqclient := NewClient(logger, googleAPIjsonkeypath, googleAPIdatasetID, googleAPItableID, thirtysecondtimeout)
+
+	if err := bqclient.Write(timeseries); err != nil {
+		fmt.Println("Error sending samples: ", err)
+	}
+
+	request := prompb.ReadRequest{
+		Queries: []*prompb.Query{
+			{
+				StartTimestampMs: nowUnix,
+				EndTimestampMs:   nowUnix + 10000,
+				Matchers: []*prompb.LabelMatcher{
+					{
+						Type:  prompb.LabelMatcher_EQ,
+						Name:  "test",
+						Value: "TestWriteRead",
+					},
+				},
+			},
+		},
+	}
+
+	result, err := bqclient.Read(&request)
+
+	assert.Nil(t, err, "failed to process query")
+	assert.Len(t, result.Results, 1)
+	assert.Len(t, result.Results[0].Timeseries, 1)
+	assert.Len(t, result.Results[0].Timeseries[0].Samples, 3)
+	assert.Equal(t, timeseries, result.Results[0].Timeseries)
+
 }

@@ -91,10 +91,10 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleAPIdatasetID, goog
 
 // Item represents a row item.
 type Item struct {
-	value      float64   `bigquery:"value"`
-	metricname string    `bigquery:"metricname"`
-	timestamp  time.Time `bigquery:"timestamp"`
-	tags       string    `bigquery:"tags"`
+	value      float64 `bigquery:"value"`
+	metricname string  `bigquery:"metricname"`
+	timestamp  int64   `bigquery:"timestamp"`
+	tags       string  `bigquery:"tags"`
 }
 
 // Save implements the ValueSaver interface.
@@ -120,40 +120,47 @@ func tagsFromMetric(m model.Metric) string {
 }
 
 // Write sends a batch of samples to BigQuery via the client.
-func (c *BigqueryClient) Write(samples model.Samples) error {
+func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 	inserter := c.client.Dataset(c.datasetID).Table(c.tableID).Inserter()
 	inserter.SkipInvalidRows = true
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 
-	batch := make([]*Item, 0, len(samples))
+	for i := range timeseries {
+		ts := timeseries[i]
+		samples := ts.Samples
+		batch := make([]*Item, 0, len(samples))
+		metric := make(model.Metric, len(ts.Labels))
+		for _, l := range ts.Labels {
+			metric[model.LabelName(l.Name)] = model.LabelValue(l.Value)
+		}
+		for _, s := range samples {
+			v := float64(s.Value)
+			if math.IsNaN(v) || math.IsInf(v, 0) {
+				//level.Debug(c.logger).Log("msg", "cannot send to BigQuery, skipping sample", "value", v, "sample", s)
+				c.ignoredSamples.Inc()
+				continue
+			}
 
-	for _, s := range samples {
-		v := float64(s.Value)
-		if math.IsNaN(v) || math.IsInf(v, 0) {
-			level.Debug(c.logger).Log("msg", "cannot send to BigQuery, skipping sample", "value", v, "sample", s)
-			c.ignoredSamples.Inc()
-			continue
+			batch = append(batch, &Item{
+				value:      v,
+				metricname: string(metric[model.MetricNameLabel]),
+				timestamp:  model.Time(s.Timestamp).Unix(),
+				tags:       tagsFromMetric(metric),
+			})
+
 		}
 
-		batch = append(batch, &Item{
-			value:      v,
-			metricname: string(s.Metric[model.MetricNameLabel]),
-			timestamp:  s.Timestamp.Time(),
-			tags:       tagsFromMetric(s.Metric),
-		})
-
-	}
-
-	if err := inserter.Put(ctx, batch); err != nil {
-		if multiError, ok := err.(bigquery.PutMultiError); ok {
-			for _, err1 := range multiError {
-				for _, err2 := range err1.Errors {
-					fmt.Println(err2)
+		if err := inserter.Put(ctx, batch); err != nil {
+			if multiError, ok := err.(bigquery.PutMultiError); ok {
+				for _, err1 := range multiError {
+					for _, err2 := range err1.Errors {
+						fmt.Println(err2)
+					}
 				}
 			}
+			defer cancel()
+			return err
 		}
-		defer cancel()
-		return err
 	}
 	defer cancel()
 	return nil
@@ -187,7 +194,7 @@ func (c *BigqueryClient) Collect(ch chan<- prometheus.Metric) {
 
 // Read queries the database and returns the results to Prometheus
 func (c *BigqueryClient) Read(req *prompb.ReadRequest) (*prompb.ReadResponse, error) {
-	readResp := &prompb.ReadResponse{Results: []*prompb.QueryResult{}}
+	tsMap := map[model.Fingerprint]*prompb.TimeSeries{}
 	for _, q := range req.Queries {
 		command, err := c.buildCommand(q)
 		if err != nil {
@@ -204,15 +211,20 @@ func (c *BigqueryClient) Read(req *prompb.ReadRequest) (*prompb.ReadResponse, er
 			return nil, err
 		}
 
-		tsList, err := rowsToTimeseries(iter)
-		if err != nil {
+		if err = mergeResult(tsMap, iter); err != nil {
 			return nil, err
 		}
-
-		readResp.Results = append(readResp.Results, &prompb.QueryResult{Timeseries: tsList})
 	}
 
-	return readResp, nil
+	resp := prompb.ReadResponse{
+		Results: []*prompb.QueryResult{
+			{Timeseries: make([]*prompb.TimeSeries, 0, len(tsMap))},
+		},
+	}
+	for _, ts := range tsMap {
+		resp.Results[0].Timeseries = append(resp.Results[0].Timeseries, ts)
+	}
+	return &resp, nil
 }
 
 // BuildCommand generates the proper SQL for the query
@@ -253,18 +265,17 @@ func (c *BigqueryClient) buildCommand(q *prompb.Query) (string, error) {
 	matchers = append(matchers, fmt.Sprintf("timestamp >= TIMESTAMP_MILLIS(%v)", q.StartTimestampMs))
 	matchers = append(matchers, fmt.Sprintf("timestamp <= TIMESTAMP_MILLIS(%v)", q.EndTimestampMs))
 
-	query := fmt.Sprintf("SELECT metricname, tags, timestamp, value FROM %s.%s WHERE %v", c.datasetID, c.tableID, strings.Join(matchers, " AND "))
+	query := fmt.Sprintf("SELECT metricname, tags, UNIX_MILLIS(timestamp) as timestamp, value FROM %s.%s WHERE %v ORDER BY timestamp", c.datasetID, c.tableID, strings.Join(matchers, " AND "))
 	level.Debug(c.logger).Log("msg", "BigQuery read", "sql query", query)
 
 	return query, nil
 }
 
 // rowsToTimeseries iterates over the BigQuery data and creates time series for Prometheus
-func rowsToTimeseries(iter *bigquery.RowIterator) ([]*prompb.TimeSeries, error) {
+func mergeResult(tsMap map[model.Fingerprint]*prompb.TimeSeries, iter *bigquery.RowIterator) error {
 	if iter == nil {
-		return nil, nil
+		return nil
 	}
-	tsMap := make(map[model.Fingerprint]*prompb.TimeSeries)
 	for {
 		row := make(map[string]bigquery.Value)
 		err := iter.Next(&row)
@@ -272,23 +283,25 @@ func rowsToTimeseries(iter *bigquery.RowIterator) ([]*prompb.TimeSeries, error) 
 			break
 		}
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		sample, metric, labels := rowToSample(row)
 
 		fp := metric.Fingerprint()
-		if _, ok := tsMap[fp]; !ok {
-			tsMap[fp] = &prompb.TimeSeries{Labels: labels}
+		ts, ok := tsMap[fp]
+		if !ok {
+			ts = &prompb.TimeSeries{Labels: labels}
+			tsMap[fp] = ts
 		}
-		tsMap[fp].Samples = append(tsMap[fp].Samples, *sample)
+		ts.Samples = append(ts.Samples, sample)
 	}
 
-	return orderTimeSeries(tsMap), nil
+	return nil
 }
 
 // rowToSample converts a BigQuery row to a sample and also processes the labels for later consumption
-func rowToSample(row map[string]bigquery.Value) (*prompb.Sample, model.Metric, []*prompb.Label) {
+func rowToSample(row map[string]bigquery.Value) (prompb.Sample, model.Metric, []*prompb.Label) {
 	var v interface{}
 	labelsJSON := row["tags"].(string)
 	json.Unmarshal([]byte(labelsJSON), &v)
@@ -306,23 +319,10 @@ func rowToSample(row map[string]bigquery.Value) (*prompb.Sample, model.Metric, [
 		Name:  model.MetricNameLabel,
 		Value: row["metricname"].(string),
 	})
+	// Make sure we sort the labels, so the test cases won't blow up
+	sort.Slice(labelPairs, func(i, j int) bool { return labelPairs[i].Name < labelPairs[j].Name })
 	metric[model.LabelName(model.MetricNameLabel)] = model.LabelValue(row["metricname"].(string))
-	return &prompb.Sample{Timestamp: row["timestamp"].(time.Time).Unix(), Value: row["value"].(float64)}, metric, labelPairs
-}
-
-// orderTimeSeries sole purpose is to make Prometheus happy
-func orderTimeSeries(tsMap map[model.Fingerprint]*prompb.TimeSeries) []*prompb.TimeSeries {
-	fps := make([]model.Fingerprint, 0, len(tsMap))
-	for fp := range tsMap {
-		fps = append(fps, fp)
-	}
-	sort.Slice(fps, func(i, j int) bool { return fps[i] < fps[j] })
-	// Convert timeseries map to a list.
-	tsList := make([]*prompb.TimeSeries, 0, len(tsMap))
-	for _, fp := range fps {
-		tsList = append(tsList, tsMap[fp])
-	}
-	return tsList
+	return prompb.Sample{Timestamp: row["timestamp"].(int64), Value: row["value"].(float64)}, metric, labelPairs
 }
 
 func escapeSingleQuotes(str string) string {
