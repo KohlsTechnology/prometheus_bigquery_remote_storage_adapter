@@ -107,8 +107,9 @@ $ GITHUB_TOKEN=xxx make clean release
 
 ### Testing
 
-You can execute goreleaser locally in order to test any changes.
-
 ```
-make clean test-release
+go test -v -cover ./... -args \
+  --googleAPIjsonkeypath=XXX \
+  --googleAPIdatasetID=XXX \
+  --googleAPItableID=XXX \
 ```

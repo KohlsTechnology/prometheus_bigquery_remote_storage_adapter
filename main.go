@@ -33,7 +33,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/model"
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/prometheus/common/promlog"
@@ -156,7 +155,7 @@ func parseFlags() *config {
 }
 
 type writer interface {
-	Write(samples model.Samples) error
+	Write(timeseries []*prompb.TimeSeries) error
 	Name() string
 }
 
@@ -206,14 +205,11 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 			return
 		}
 
-		samples := protoToSamples(&req)
-		receivedSamples.Add(float64(len(samples)))
-
 		var wg sync.WaitGroup
 		for _, w := range writers {
 			wg.Add(1)
 			go func(rw writer) {
-				sendSamples(logger, rw, samples)
+				sendSamples(logger, rw, req.Timeseries)
 				wg.Done()
 			}(w)
 		}
@@ -275,33 +271,14 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 	return http.ListenAndServe(addr, nil)
 }
 
-func protoToSamples(req *prompb.WriteRequest) model.Samples {
-	var samples model.Samples
-	for _, ts := range req.Timeseries {
-		metric := make(model.Metric, len(ts.Labels))
-		for _, l := range ts.Labels {
-			metric[model.LabelName(l.Name)] = model.LabelValue(l.Value)
-		}
-
-		for _, s := range ts.Samples {
-			samples = append(samples, &model.Sample{
-				Metric:    metric,
-				Value:     model.SampleValue(s.Value),
-				Timestamp: model.Time(s.Timestamp),
-			})
-		}
-	}
-	return samples
-}
-
-func sendSamples(logger log.Logger, w writer, samples model.Samples) {
+func sendSamples(logger log.Logger, w writer, timeseries []*prompb.TimeSeries) {
 	begin := time.Now()
-	err := w.Write(samples)
+	err := w.Write(timeseries)
 	duration := time.Since(begin).Seconds()
 	if err != nil {
-		level.Warn(logger).Log("msg", "Error sending samples to remote storage", "err", err, "storage", w.Name(), "num_samples", len(samples))
-		failedSamples.WithLabelValues(w.Name()).Add(float64(len(samples)))
+		level.Warn(logger).Log("msg", "Error sending samples to remote storage", "err", err, "storage", w.Name(), "num_samples", len(timeseries))
+		failedSamples.WithLabelValues(w.Name()).Add(float64(len(timeseries)))
 	}
-	sentSamples.WithLabelValues(w.Name()).Add(float64(len(samples)))
+	sentSamples.WithLabelValues(w.Name()).Add(float64(len(timeseries)))
 	sentBatchDuration.WithLabelValues(w.Name()).Observe(duration)
 }

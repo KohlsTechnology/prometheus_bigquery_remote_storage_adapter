@@ -11,6 +11,7 @@ require (
 	github.com/prometheus/client_golang v1.5.1
 	github.com/prometheus/common v0.9.1
 	github.com/prometheus/prometheus v2.5.0+incompatible
+	github.com/stretchr/testify v1.4.0
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/tools v0.0.0-20200318150045-ba25ddc85566 // indirect
 	google.golang.org/api v0.20.0

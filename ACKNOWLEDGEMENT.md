@@ -4,4 +4,4 @@ This adapter is based off code found in the official prometheus repo: https://gi
 
 Thanks to all the great contributors support of this project!
 
-Further inspiration and code examples were taken from: https://github.com/google/truestreet
+Further inspiration and code examples were taken from: https://github.com/google/truestreet and https://github.com/RedisTimeSeries/prometheus-redistimeseries-adapter
