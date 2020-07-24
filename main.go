@@ -288,7 +288,6 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 			level.Warn(logger).Log("msg", "Error writing response", "storage", reader.Name(), "err", err)
 			readErrors.Inc()
 		}
-		readErrors.Inc()
 	})
 
 	return http.ListenAndServe(addr, nil)
