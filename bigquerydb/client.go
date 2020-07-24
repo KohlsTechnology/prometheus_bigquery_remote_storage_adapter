@@ -90,7 +90,7 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleAPIdatasetID, goog
 		recordsFetched: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Name: "storage_bigquery_records_fetched",
-				Help: "Total number of records fetched in a batch.",
+				Help: "Total number of records fetched",
 			},
 		),
 	}
