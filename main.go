@@ -83,13 +83,13 @@ var (
 	)
 	writeErrors = prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Name: "storage_bigquery_write_error_total",
+			Name: "storage_bigquery_write_errors_total",
 			Help: "Total number of write errors to BigQuery.",
 		},
 	)
 	readErrors = prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Name: "storage_bigquery_read_error_total",
+			Name: "storage_bigquery_read_errors_total",
 			Help: "Total number of read errors from BigQuery.",
 		},
 	)
