@@ -55,27 +55,27 @@ type config struct {
 var (
 	receivedSamples = prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Name: "received_samples_total",
+			Name: "storage_bigquery_received_samples_total",
 			Help: "Total number of received samples.",
 		},
 	)
 	sentSamples = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "sent_samples_total",
+			Name: "storage_bigquery_sent_samples_total",
 			Help: "Total number of processed samples sent to remote storage.",
 		},
 		[]string{"remote"},
 	)
 	failedSamples = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "failed_samples_total",
+			Name: "storage_bigquery_failed_samples_total",
 			Help: "Total number of processed samples which failed on send to remote storage.",
 		},
 		[]string{"remote"},
 	)
 	sentBatchDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name:    "sent_batch_duration_seconds",
+			Name:    "storage_bigquery_sent_batch_duration_seconds",
 			Help:    "Duration of sample batch send calls to the remote storage.",
 			Buckets: prometheus.DefBuckets,
 		},

@@ -43,6 +43,7 @@ type BigqueryClient struct {
 	tableID        string
 	timeout        time.Duration
 	ignoredSamples prometheus.Counter
+	recordsFetched prometheus.Counter
 }
 
 // NewClient creates a new Client.
@@ -82,8 +83,14 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleAPIdatasetID, goog
 		timeout:   remoteTimeout,
 		ignoredSamples: prometheus.NewCounter(
 			prometheus.CounterOpts{
-				Name: "prometheus_bigquery_ignored_samples_total",
+				Name: "storage_bigquery_ignored_samples_total",
 				Help: "The total number of samples not sent to BigQuery due to unsupported float values (Inf, -Inf, NaN).",
+			},
+		),
+		recordsFetched: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Name: "storage_bigquery_records_fetched",
+				Help: "Total number of records fetched",
 			},
 		),
 	}
@@ -129,6 +136,7 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 		ts := timeseries[i]
 		samples := ts.Samples
 		batch := make([]*Item, 0, len(samples))
+		c.recordsFetched.Add(float64(len(samples)))
 		metric := make(model.Metric, len(ts.Labels))
 		for _, l := range ts.Labels {
 			metric[model.LabelName(l.Name)] = model.LabelValue(l.Value)
@@ -185,11 +193,13 @@ func (c BigqueryClient) Name() string {
 // Describe implements prometheus.Collector.
 func (c *BigqueryClient) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.ignoredSamples.Desc()
+	ch <- c.recordsFetched.Desc()
 }
 
 // Collect implements prometheus.Collector.
 func (c *BigqueryClient) Collect(ch chan<- prometheus.Metric) {
 	ch <- c.ignoredSamples
+	ch <- c.recordsFetched
 }
 
 // Read queries the database and returns the results to Prometheus
