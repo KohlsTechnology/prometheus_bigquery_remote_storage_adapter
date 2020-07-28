@@ -81,6 +81,18 @@ var (
 		},
 		[]string{"remote"},
 	)
+	writeErrors = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "storage_bigquery_write_errors_total",
+			Help: "Total number of write errors to BigQuery.",
+		},
+	)
+	readErrors = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "storage_bigquery_read_errors_total",
+			Help: "Total number of read errors from BigQuery.",
+		},
+	)
 )
 
 func init() {
@@ -88,6 +100,8 @@ func init() {
 	prometheus.MustRegister(sentSamples)
 	prometheus.MustRegister(failedSamples)
 	prometheus.MustRegister(sentBatchDuration)
+	prometheus.MustRegister(writeErrors)
+	prometheus.MustRegister(readErrors)
 }
 
 func main() {
@@ -188,6 +202,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 		if err != nil {
 			level.Error(logger).Log("msg", "Read error", "err", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrors.Inc()
 			return
 		}
 
@@ -195,6 +210,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 		if err != nil {
 			level.Error(logger).Log("msg", "Decode error", "err", err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeErrors.Inc()
 			return
 		}
 
@@ -202,6 +218,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 		if err := proto.Unmarshal(reqBuf, &req); err != nil {
 			level.Error(logger).Log("msg", "Unmarshal error", "err", err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeErrors.Inc()
 			return
 		}
 
@@ -221,6 +238,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 		if err != nil {
 			level.Error(logger).Log("msg", "Read error", "err", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			readErrors.Inc()
 			return
 		}
 
@@ -228,6 +246,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 		if err != nil {
 			level.Error(logger).Log("msg", "Decode error", "err", err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			readErrors.Inc()
 			return
 		}
 
@@ -235,12 +254,14 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 		if err := proto.Unmarshal(reqBuf, &req); err != nil {
 			level.Error(logger).Log("msg", "Unmarshal error", "err", err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			readErrors.Inc()
 			return
 		}
 
 		// TODO: Support reading from more than one reader and merging the results.
 		if len(readers) != 1 {
 			http.Error(w, fmt.Sprintf("expected exactly one reader, found %d readers", len(readers)), http.StatusInternalServerError)
+			readErrors.Inc()
 			return
 		}
 		reader := readers[0]
@@ -250,12 +271,14 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 		if err != nil {
 			level.Warn(logger).Log("msg", "Error executing query", "query", req, "storage", reader.Name(), "err", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			readErrors.Inc()
 			return
 		}
 
 		data, err := proto.Marshal(resp)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			readErrors.Inc()
 			return
 		}
 
@@ -265,6 +288,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 		compressed = snappy.Encode(nil, data)
 		if _, err := w.Write(compressed); err != nil {
 			level.Warn(logger).Log("msg", "Error writing response", "storage", reader.Name(), "err", err)
+			readErrors.Inc()
 		}
 	})
 
@@ -278,7 +302,9 @@ func sendSamples(logger log.Logger, w writer, timeseries []*prompb.TimeSeries) {
 	if err != nil {
 		level.Warn(logger).Log("msg", "Error sending samples to remote storage", "err", err, "storage", w.Name(), "num_samples", len(timeseries))
 		failedSamples.WithLabelValues(w.Name()).Add(float64(len(timeseries)))
+		writeErrors.Inc()
+	} else {
+		sentSamples.WithLabelValues(w.Name()).Add(float64(len(timeseries)))
+		sentBatchDuration.WithLabelValues(w.Name()).Observe(duration)
 	}
-	sentSamples.WithLabelValues(w.Name()).Add(float64(len(timeseries)))
-	sentBatchDuration.WithLabelValues(w.Name()).Observe(duration)
 }
