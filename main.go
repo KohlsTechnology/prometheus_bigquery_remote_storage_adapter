@@ -93,6 +93,22 @@ var (
 			Help: "Total number of read errors from BigQuery.",
 		},
 	)
+	writeProcessingDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "storage_bigquery_write_processing_duration",
+			Help:    "Duration of the write api processing.",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"remote"},
+	)
+	readProcessingDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "storage_bigquery_read_processing_duration",
+			Help:    "Duration of the read api processing.",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"remote"},
+	)
 )
 
 func init() {
@@ -102,6 +118,8 @@ func init() {
 	prometheus.MustRegister(sentBatchDuration)
 	prometheus.MustRegister(writeErrors)
 	prometheus.MustRegister(readErrors)
+	prometheus.MustRegister(writeProcessingDuration)
+	prometheus.MustRegister(readProcessingDuration)
 }
 
 func main() {
@@ -198,6 +216,7 @@ func buildClients(logger log.Logger, cfg *config) ([]writer, []reader) {
 
 func serve(logger log.Logger, addr string, writers []writer, readers []reader) error {
 	http.HandleFunc("/write", func(w http.ResponseWriter, r *http.Request) {
+		begin := time.Now()
 		compressed, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			level.Error(logger).Log("msg", "Read error", "err", err.Error())
@@ -231,9 +250,13 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 			}(w)
 		}
 		wg.Wait()
+		duration := time.Since(begin).Seconds()
+		writeProcessingDuration.WithLabelValues(writers[0].Name()).Observe(duration)
+
 	})
 
 	http.HandleFunc("/read", func(w http.ResponseWriter, r *http.Request) {
+		begin := time.Now()
 		compressed, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			level.Error(logger).Log("msg", "Read error", "err", err.Error())
@@ -290,6 +313,8 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 			level.Warn(logger).Log("msg", "Error writing response", "storage", reader.Name(), "err", err)
 			readErrors.Inc()
 		}
+		duration := time.Since(begin).Seconds()
+		readProcessingDuration.WithLabelValues(writers[0].Name()).Observe(duration)
 	})
 
 	return http.ListenAndServe(addr, nil)
