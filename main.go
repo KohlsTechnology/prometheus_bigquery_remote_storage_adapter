@@ -83,14 +83,14 @@ var (
 	)
 	writeErrors = prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Name: "storage_bigquery_write_error_count",
-			Help: "Total number of write errors to Bigquery.",
+			Name: "storage_bigquery_write_error_total",
+			Help: "Total number of write errors to BigQuery.",
 		},
 	)
 	readErrors = prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Name: "storage_bigquery_read_error_count",
-			Help: "Total number of read errors to Bigquery.",
+			Name: "storage_bigquery_read_error_total",
+			Help: "Total number of read errors from BigQuery.",
 		},
 	)
 )
@@ -102,7 +102,6 @@ func init() {
 	prometheus.MustRegister(sentBatchDuration)
 	prometheus.MustRegister(writeErrors)
 	prometheus.MustRegister(readErrors)
-
 }
 
 func main() {
@@ -203,6 +202,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 		if err != nil {
 			level.Error(logger).Log("msg", "Read error", "err", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrors.Inc()
 			return
 		}
 
@@ -210,6 +210,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 		if err != nil {
 			level.Error(logger).Log("msg", "Decode error", "err", err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeErrors.Inc()
 			return
 		}
 
@@ -217,6 +218,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 		if err := proto.Unmarshal(reqBuf, &req); err != nil {
 			level.Error(logger).Log("msg", "Unmarshal error", "err", err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeErrors.Inc()
 			return
 		}
 
@@ -301,7 +303,8 @@ func sendSamples(logger log.Logger, w writer, timeseries []*prompb.TimeSeries) {
 		level.Warn(logger).Log("msg", "Error sending samples to remote storage", "err", err, "storage", w.Name(), "num_samples", len(timeseries))
 		failedSamples.WithLabelValues(w.Name()).Add(float64(len(timeseries)))
 		writeErrors.Inc()
+	} else {
+		sentSamples.WithLabelValues(w.Name()).Add(float64(len(timeseries)))
+		sentBatchDuration.WithLabelValues(w.Name()).Observe(duration)
 	}
-	sentSamples.WithLabelValues(w.Name()).Add(float64(len(timeseries)))
-	sentBatchDuration.WithLabelValues(w.Name()).Observe(duration)
 }
