@@ -95,7 +95,7 @@ var (
 	)
 	writeProcessingDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name:    "storage_bigquery_write_processing_duration",
+			Name:    "storage_bigquery_write_api_seconds",
 			Help:    "Duration of the write api processing.",
 			Buckets: prometheus.DefBuckets,
 		},
@@ -103,7 +103,7 @@ var (
 	)
 	readProcessingDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name:    "storage_bigquery_read_processing_duration",
+			Name:    "storage_bigquery_read_api_seconds",
 			Help:    "Duration of the read api processing.",
 			Buckets: prometheus.DefBuckets,
 		},
