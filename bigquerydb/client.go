@@ -44,6 +44,7 @@ type BigqueryClient struct {
 	timeout        time.Duration
 	ignoredSamples prometheus.Counter
 	recordsFetched prometheus.Counter
+	writeDuration  prometheus.Histogram
 }
 
 // NewClient creates a new Client.
@@ -93,6 +94,13 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleAPIdatasetID, goog
 				Help: "Total number of records fetched",
 			},
 		),
+		writeDuration: prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Name:    "storage_bigquery_write_batch_duration_seconds",
+				Help:    "The write duration from BigQuery to prometheus?",
+				Buckets: prometheus.DefBuckets,
+			},
+		),
 	}
 }
 
@@ -131,6 +139,7 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 	inserter := c.client.Dataset(c.datasetID).Table(c.tableID).Inserter()
 	inserter.SkipInvalidRows = true
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	begin := time.Now()
 
 	for i := range timeseries {
 		ts := timeseries[i]
@@ -170,6 +179,8 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 			return err
 		}
 	}
+	duration := time.Since(begin).Seconds()
+	c.writeDuration.Observe(duration)
 	defer cancel()
 	return nil
 }
