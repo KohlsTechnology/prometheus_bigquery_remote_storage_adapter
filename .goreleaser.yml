@@ -7,26 +7,32 @@ before:
   hooks:
     - go mod tidy
 builds:
-- ldflags:
-  - "-X {{.Env.VERSION_PKG}}.Branch={{.Env.BRANCH}}"
-  - "-X {{.Env.VERSION_PKG}}.BuildDate={{.Env.DATE}}"
-  - "-X {{.Env.VERSION_PKG}}.GitSHA1={{.Env.COMMIT}}"
+  - ldflags:
+      - "-X {{.Env.VERSION_PKG}}.Branch={{.Env.BRANCH}}"
+      - "-X {{.Env.VERSION_PKG}}.BuildDate={{.Env.DATE}}"
+      - "-X {{.Env.VERSION_PKG}}.GitSHA1={{.Env.COMMIT}}"
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
 archives:
-- replacements:
-    darwin: Darwin
-    linux: Linux
-    windows: Windows
-    386: i386
-    amd64: x86_64
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 snapshot:
   name_template: "{{ .Tag }}-next"
 changelog:
-  skip: true
+  skip: false
 dockers:
   - binaries:
-    - prometheus_bigquery_remote_storage_adapter
+      - prometheus_bigquery_remote_storage_adapter
     image_templates:
       - "quay.io/kohlstechnology/{{.ProjectName}}:{{ .Tag }}"
       - "quay.io/kohlstechnology/{{.ProjectName}}:latest"
