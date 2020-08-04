@@ -37,13 +37,14 @@ import (
 
 // BigqueryClient allows sending batches of Prometheus samples to Bigquery.
 type BigqueryClient struct {
-	logger         log.Logger
-	client         bigquery.Client
-	datasetID      string
-	tableID        string
-	timeout        time.Duration
-	ignoredSamples prometheus.Counter
-	recordsFetched prometheus.Counter
+	logger             log.Logger
+	client             bigquery.Client
+	datasetID          string
+	tableID            string
+	timeout            time.Duration
+	ignoredSamples     prometheus.Counter
+	recordsFetched     prometheus.Counter
+	batchWriteDuration prometheus.Histogram
 }
 
 // NewClient creates a new Client.
@@ -91,6 +92,13 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleAPIdatasetID, goog
 			prometheus.CounterOpts{
 				Name: "storage_bigquery_records_fetched",
 				Help: "Total number of records fetched",
+			},
+		),
+		batchWriteDuration: prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Name:    "storage_bigquery_batch_write_duration_seconds",
+				Help:    "The duration it takes to write a batch of samples to BigQuery.",
+				Buckets: prometheus.DefBuckets,
 			},
 		),
 	}
@@ -158,6 +166,7 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 
 		}
 
+		begin := time.Now()
 		if err := inserter.Put(ctx, batch); err != nil {
 			if multiError, ok := err.(bigquery.PutMultiError); ok {
 				for _, err1 := range multiError {
@@ -169,6 +178,8 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 			defer cancel()
 			return err
 		}
+		duration := time.Since(begin).Seconds()
+		c.batchWriteDuration.Observe(duration)
 	}
 	defer cancel()
 	return nil
@@ -194,12 +205,14 @@ func (c BigqueryClient) Name() string {
 func (c *BigqueryClient) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.ignoredSamples.Desc()
 	ch <- c.recordsFetched.Desc()
+	ch <- c.batchWriteDuration.Desc()
 }
 
 // Collect implements prometheus.Collector.
 func (c *BigqueryClient) Collect(ch chan<- prometheus.Metric) {
 	ch <- c.ignoredSamples
 	ch <- c.recordsFetched
+	ch <- c.batchWriteDuration
 }
 
 // Read queries the database and returns the results to Prometheus
