@@ -37,13 +37,15 @@ import (
 
 // BigqueryClient allows sending batches of Prometheus samples to Bigquery.
 type BigqueryClient struct {
-	logger         log.Logger
-	client         bigquery.Client
-	datasetID      string
-	tableID        string
-	timeout        time.Duration
-	ignoredSamples prometheus.Counter
-	recordsFetched prometheus.Counter
+	logger           log.Logger
+	client           bigquery.Client
+	datasetID        string
+	tableID          string
+	timeout          time.Duration
+	ignoredSamples   prometheus.Counter
+	recordsFetched   prometheus.Counter
+	sqlQueryCount    prometheus.Counter
+	sqlQueryDuration prometheus.Histogram
 }
 
 // NewClient creates a new Client.
@@ -91,6 +93,19 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleAPIdatasetID, goog
 			prometheus.CounterOpts{
 				Name: "storage_bigquery_records_fetched",
 				Help: "Total number of records fetched",
+			},
+		),
+		sqlQueryCount: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Name: "storage_bigquery_sql_query_count_total",
+				Help: "Total number of sql_queries executed.",
+			},
+		),
+		sqlQueryDuration: prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Name:    "storage_bigquery_sql_query_duration_seconds",
+				Help:    "Duration of the sql writes to Big Query.",
+				Buckets: prometheus.DefBuckets,
 			},
 		),
 	}
@@ -194,12 +209,16 @@ func (c BigqueryClient) Name() string {
 func (c *BigqueryClient) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.ignoredSamples.Desc()
 	ch <- c.recordsFetched.Desc()
+	ch <- c.sqlQueryCount.Desc()
+	ch <- c.sqlQueryDuration.Desc()
 }
 
 // Collect implements prometheus.Collector.
 func (c *BigqueryClient) Collect(ch chan<- prometheus.Metric) {
 	ch <- c.ignoredSamples
 	ch <- c.recordsFetched
+	ch <- c.sqlQueryCount
+	ch <- c.sqlQueryDuration
 }
 
 // Read queries the database and returns the results to Prometheus
@@ -213,7 +232,11 @@ func (c *BigqueryClient) Read(req *prompb.ReadRequest) (*prompb.ReadResponse, er
 
 		query := c.client.Query(command)
 		ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+		c.sqlQueryCount.Inc()
+		begin := time.Now()
 		iter, err := query.Read(ctx)
+		duration := time.Since(begin).Seconds()
+		c.sqlQueryDuration.Observe(duration)
 		level.Debug(c.logger).Log("msg", "BigQuery SQL query", "rows received", iter.TotalRows)
 		defer cancel()
 
