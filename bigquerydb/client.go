@@ -139,7 +139,6 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 	inserter := c.client.Dataset(c.datasetID).Table(c.tableID).Inserter()
 	inserter.SkipInvalidRows = true
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
-	begin := time.Now()
 
 	for i := range timeseries {
 		ts := timeseries[i]
@@ -167,6 +166,7 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 
 		}
 
+		begin := time.Now()
 		if err := inserter.Put(ctx, batch); err != nil {
 			if multiError, ok := err.(bigquery.PutMultiError); ok {
 				for _, err1 := range multiError {
@@ -178,10 +178,9 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 			defer cancel()
 			return err
 		}
+		duration := time.Since(begin).Seconds()
+		c.writeDuration.Observe(duration)
 	}
-	duration := time.Since(begin).Seconds()
-	level.Debug(c.logger).Log("msg", "Duration: ", duration)
-	c.writeDuration.Observe(duration)
 	defer cancel()
 	return nil
 }
