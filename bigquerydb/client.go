@@ -94,10 +94,10 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleAPIdatasetID, goog
 				Help: "Total number of records fetched",
 			},
 		),
-		writeDuration: prometheus.NewHistogram(
+		batchWriteDuration: prometheus.NewHistogram(
 			prometheus.HistogramOpts{
-				Name:    "storage_bigquery_write_batch_duration_seconds",
-				Help:    "The write duration from BigQuery to prometheus?",
+				Name:    "storage_bigquery_batch_write_duration_seconds",
+				Help:    "The duration it takes to write a batch sample to be written to BigQuery.",
 				Buckets: prometheus.DefBuckets,
 			},
 		),
