@@ -180,6 +180,7 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 		}
 	}
 	duration := time.Since(begin).Seconds()
+	level.Debug(c.logger).Log("msg", "Duration: ", duration)
 	c.writeDuration.Observe(duration)
 	defer cancel()
 	return nil
@@ -205,12 +206,14 @@ func (c BigqueryClient) Name() string {
 func (c *BigqueryClient) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.ignoredSamples.Desc()
 	ch <- c.recordsFetched.Desc()
+	ch <- c.writeDuration.Desc()
 }
 
 // Collect implements prometheus.Collector.
 func (c *BigqueryClient) Collect(ch chan<- prometheus.Metric) {
 	ch <- c.ignoredSamples
 	ch <- c.recordsFetched
+	ch <- c.writeDuration
 }
 
 // Read queries the database and returns the results to Prometheus
