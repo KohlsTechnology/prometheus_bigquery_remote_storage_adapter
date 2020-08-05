@@ -37,15 +37,16 @@ import (
 
 // BigqueryClient allows sending batches of Prometheus samples to Bigquery.
 type BigqueryClient struct {
-	logger           log.Logger
-	client           bigquery.Client
-	datasetID        string
-	tableID          string
-	timeout          time.Duration
-	ignoredSamples   prometheus.Counter
-	recordsFetched   prometheus.Counter
-	sqlQueryCount    prometheus.Counter
-	sqlQueryDuration prometheus.Histogram
+	logger             log.Logger
+	client             bigquery.Client
+	datasetID          string
+	tableID            string
+	timeout            time.Duration
+	ignoredSamples     prometheus.Counter
+	recordsFetched     prometheus.Counter
+	batchWriteDuration prometheus.Histogram
+	sqlQueryCount      prometheus.Counter
+	sqlQueryDuration   prometheus.Histogram
 }
 
 // NewClient creates a new Client.
@@ -95,6 +96,13 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleAPIdatasetID, goog
 				Help: "Total number of records fetched",
 			},
 		),
+		batchWriteDuration: prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Name:    "storage_bigquery_batch_write_duration_seconds",
+				Help:    "The duration it takes to write a batch of samples to BigQuery.",
+				Buckets: prometheus.DefBuckets,
+			},
+		),
 		sqlQueryCount: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Name: "storage_bigquery_sql_query_count_total",
@@ -103,9 +111,8 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleAPIdatasetID, goog
 		),
 		sqlQueryDuration: prometheus.NewHistogram(
 			prometheus.HistogramOpts{
-				Name:    "storage_bigquery_sql_query_duration_seconds",
-				Help:    "Duration of the sql reads from BigQuery.",
-				Buckets: prometheus.DefBuckets,
+				Name: "storage_bigquery_sql_query_duration_seconds",
+				Help: "Duration of the sql reads from BigQuery.",
 			},
 		),
 	}
@@ -173,6 +180,7 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 
 		}
 
+		begin := time.Now()
 		if err := inserter.Put(ctx, batch); err != nil {
 			if multiError, ok := err.(bigquery.PutMultiError); ok {
 				for _, err1 := range multiError {
@@ -184,6 +192,8 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 			defer cancel()
 			return err
 		}
+		duration := time.Since(begin).Seconds()
+		c.batchWriteDuration.Observe(duration)
 	}
 	defer cancel()
 	return nil
@@ -211,6 +221,7 @@ func (c *BigqueryClient) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.recordsFetched.Desc()
 	ch <- c.sqlQueryCount.Desc()
 	ch <- c.sqlQueryDuration.Desc()
+	ch <- c.batchWriteDuration.Desc()
 }
 
 // Collect implements prometheus.Collector.
@@ -219,6 +230,7 @@ func (c *BigqueryClient) Collect(ch chan<- prometheus.Metric) {
 	ch <- c.recordsFetched
 	ch <- c.sqlQueryCount
 	ch <- c.sqlQueryDuration
+	ch <- c.batchWriteDuration
 }
 
 // Read queries the database and returns the results to Prometheus
