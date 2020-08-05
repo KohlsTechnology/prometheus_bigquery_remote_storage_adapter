@@ -104,7 +104,7 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleAPIdatasetID, goog
 		sqlQueryDuration: prometheus.NewHistogram(
 			prometheus.HistogramOpts{
 				Name:    "storage_bigquery_sql_query_duration_seconds",
-				Help:    "Duration of the sql writes to BigQuery.",
+				Help:    "Duration of the sql reads from BigQuery.",
 				Buckets: prometheus.DefBuckets,
 			},
 		),
