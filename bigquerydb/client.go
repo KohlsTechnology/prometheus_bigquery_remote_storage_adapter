@@ -45,6 +45,8 @@ type BigqueryClient struct {
 	ignoredSamples     prometheus.Counter
 	recordsFetched     prometheus.Counter
 	batchWriteDuration prometheus.Histogram
+	sqlQueryCount      prometheus.Counter
+	sqlQueryDuration   prometheus.Histogram
 }
 
 // NewClient creates a new Client.
@@ -99,6 +101,18 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleAPIdatasetID, goog
 				Name:    "storage_bigquery_batch_write_duration_seconds",
 				Help:    "The duration it takes to write a batch of samples to BigQuery.",
 				Buckets: prometheus.DefBuckets,
+			},
+		),
+		sqlQueryCount: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Name: "storage_bigquery_sql_query_count_total",
+				Help: "Total number of sql_queries executed.",
+			},
+		),
+		sqlQueryDuration: prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Name: "storage_bigquery_sql_query_duration_seconds",
+				Help: "Duration of the sql reads from BigQuery.",
 			},
 		),
 	}
@@ -205,6 +219,8 @@ func (c BigqueryClient) Name() string {
 func (c *BigqueryClient) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.ignoredSamples.Desc()
 	ch <- c.recordsFetched.Desc()
+	ch <- c.sqlQueryCount.Desc()
+	ch <- c.sqlQueryDuration.Desc()
 	ch <- c.batchWriteDuration.Desc()
 }
 
@@ -212,6 +228,8 @@ func (c *BigqueryClient) Describe(ch chan<- *prometheus.Desc) {
 func (c *BigqueryClient) Collect(ch chan<- prometheus.Metric) {
 	ch <- c.ignoredSamples
 	ch <- c.recordsFetched
+	ch <- c.sqlQueryCount
+	ch <- c.sqlQueryDuration
 	ch <- c.batchWriteDuration
 }
 
@@ -226,7 +244,11 @@ func (c *BigqueryClient) Read(req *prompb.ReadRequest) (*prompb.ReadResponse, er
 
 		query := c.client.Query(command)
 		ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+		c.sqlQueryCount.Inc()
+		begin := time.Now()
 		iter, err := query.Read(ctx)
+		duration := time.Since(begin).Seconds()
+		c.sqlQueryDuration.Observe(duration)
 		level.Debug(c.logger).Log("msg", "BigQuery SQL query", "rows received", iter.TotalRows)
 		defer cancel()
 
