@@ -30,6 +30,8 @@ SELECT metricname, tags, JSON_EXTRACT(tags, '$.some_label')
   WHERE JSON_EXTRACT(tags, '$.some_label') = "\\"target_label_value\\""
 ```
 
+Consider enabling partition expiration on the destination table based on your data retention and billing requirements (https://cloud.google.com/bigquery/docs/managing-partitioned-tables#partition-expiration).
+
 ## Running directly
 
 ```
