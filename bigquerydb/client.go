@@ -296,13 +296,13 @@ func (c *BigqueryClient) buildCommand(q *prompb.Query) (string, error) {
 		// Labels
 		switch m.Type {
 		case prompb.LabelMatcher_EQ:
-			matchers = append(matchers, fmt.Sprintf(`JSON_EXTRACT(tags, '$.%s') = '"%s"'`, m.Name, m.Value))
+			matchers = append(matchers, fmt.Sprintf(`IFNULL(JSON_EXTRACT(tags, '$.%s'), '') = '"%s"'`, m.Name, m.Value))
 		case prompb.LabelMatcher_NEQ:
-			matchers = append(matchers, fmt.Sprintf(`JSON_EXTRACT(tags, '$.%s') = '"%s"'`, m.Name, m.Value))
+			matchers = append(matchers, fmt.Sprintf(`IFNULL(JSON_EXTRACT(tags, '$.%s'), '') = '"%s"'`, m.Name, m.Value))
 		case prompb.LabelMatcher_RE:
-			matchers = append(matchers, fmt.Sprintf(`REGEXP_CONTAINS(JSON_EXTRACT(tags, '$.%s'), r'"%s"')`, m.Name, m.Value))
+			matchers = append(matchers, fmt.Sprintf(`IFNULL(REGEXP_CONTAINS(JSON_EXTRACT(tags, '$.%s'), ''), r'"%s"')`, m.Name, m.Value))
 		case prompb.LabelMatcher_NRE:
-			matchers = append(matchers, fmt.Sprintf(`not REGEXP_CONTAINS(JSON_EXTRACT(tags, '$.%s'), r'"%s"')`, m.Name, m.Value))
+			matchers = append(matchers, fmt.Sprintf(`not IFNULL(REGEXP_CONTAINS(JSON_EXTRACT(tags, '$.%s'), ''), r'"%s"')`, m.Name, m.Value))
 		default:
 			return "", errors.Errorf("unknown match type %v", m.Type)
 		}
