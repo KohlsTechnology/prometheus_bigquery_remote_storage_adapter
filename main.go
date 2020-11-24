@@ -319,6 +319,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 		}
 		duration := time.Since(begin).Seconds()
 		readProcessingDuration.WithLabelValues(writers[0].Name()).Observe(duration)
+		level.Debug(logger).Log("msg", "/read", "duration", duration)
 	})
 
 	return http.ListenAndServe(addr, nil)
