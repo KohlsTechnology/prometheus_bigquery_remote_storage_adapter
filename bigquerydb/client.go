@@ -247,9 +247,6 @@ func (c *BigqueryClient) Read(req *prompb.ReadRequest) (*prompb.ReadResponse, er
 		c.sqlQueryCount.Inc()
 		begin := time.Now()
 		iter, err := query.Read(ctx)
-		duration := time.Since(begin).Seconds()
-		c.sqlQueryDuration.Observe(duration)
-		level.Debug(c.logger).Log("msg", "BigQuery SQL query", "rows received", iter.TotalRows)
 		defer cancel()
 
 		if err != nil {
@@ -259,6 +256,9 @@ func (c *BigqueryClient) Read(req *prompb.ReadRequest) (*prompb.ReadResponse, er
 		if err = mergeResult(tsMap, iter); err != nil {
 			return nil, err
 		}
+		duration := time.Since(begin).Seconds()
+		c.sqlQueryDuration.Observe(duration)
+		level.Debug(c.logger).Log("msg", "BigQuery SQL query", "rows", iter.TotalRows, "duration", duration)
 	}
 
 	resp := prompb.ReadResponse{
