@@ -125,11 +125,6 @@ func init() {
 func main() {
 	cfg := parseFlags()
 
-	if cfg.printVersion {
-		version.Print()
-		os.Exit(0)
-	}
-
 	http.Handle(cfg.telemetryPath, promhttp.Handler())
 
 	logger := promlog.New(&cfg.promlogConfig)
@@ -177,6 +172,12 @@ func parseFlags() *config {
 	flag.AddFlags(a, &cfg.promlogConfig)
 
 	_, err := a.Parse(os.Args[1:])
+
+	if cfg.printVersion {
+		version.Print()
+		os.Exit(0)
+	}
+
 	if err != nil {
 		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "Error parsing commandline arguments"))
 		a.Usage(os.Args[1:])
