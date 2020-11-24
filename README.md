@@ -24,8 +24,8 @@ It is recommended that the BigQuery table is partitioned on the timestamp column
 The tags field is a json string and can be easily extracted. Here is an example query:
 
 ```
-SELECT metricname, tags, JSON_EXTRACT(tags, '$.some_label') 
-  AS some_label, value, timestamp 
+SELECT metricname, tags, JSON_EXTRACT(tags, '$.some_label')
+  AS some_label, value, timestamp
   FROM `your_gcp_project.prometheus.metrics_stream`
   WHERE JSON_EXTRACT(tags, '$.some_label') = "\\"target_label_value\\""
 ```
@@ -59,6 +59,8 @@ You can configure this storage adapter either through command line options or en
 | `--send-timeout` | `PROMBQ_TIMEOUT` | No | `30s` | The timeout to use when sending samples to the remote storage |
 | `--web.listen-address` | `PROMBQ_LISTEN` | No | `:9201` | Address to listen on for web endpoints |
 | `--web.telemetry-path` | `PROMBQ_TELEMETRY` | No | `/metrics` | Address to listen on for web endpoints |
+| `log.level` | `PROMBQ_LOG_LEVEL` | No | `info` | Only log messages with the given severity or above. One of: [debug, info, warn, error] |
+| `--log.format` | `PROMBQ_LOG_FORMAT` | No | `logfmt` | Output format of log messages. One of: [logfmt, json] |
 
 ## Configuring Prometheus
 

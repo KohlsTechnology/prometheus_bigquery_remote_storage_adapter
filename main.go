@@ -36,7 +36,6 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/prometheus/common/promlog"
-	"github.com/prometheus/common/promlog/flag"
 
 	"github.com/prometheus/prometheus/prompb"
 )
@@ -129,6 +128,12 @@ func main() {
 
 	logger := promlog.New(&cfg.promlogConfig)
 
+	level.Info(logger).Log("promlog", cfg.promlogConfig.Level)
+	level.Error(logger).Log("Error")
+	level.Warn(logger).Log("Warn")
+	level.Info(logger).Log("Info")
+	level.Debug(logger).Log("Debug")
+
 	level.Info(logger).Log("msg", version.Get())
 
 	level.Info(logger).Log("msg", "Configuration settings:",
@@ -168,8 +173,12 @@ func parseFlags() *config {
 		Envar("PROMBQ_LISTEN").Default(":9201").StringVar(&cfg.listenAddr)
 	a.Flag("web.telemetry-path", "Address to listen on for web endpoints.").
 		Envar("PROMBQ_TELEMETRY").Default("/metrics").StringVar(&cfg.telemetryPath)
-
-	flag.AddFlags(a, &cfg.promlogConfig)
+	cfg.promlogConfig.Level = &promlog.AllowedLevel{}
+	a.Flag("log.level", "Only log messages with the given severity or above. One of: [debug, info, warn, error]").
+		Envar("PROMBQ_LOG_LEVEL").Default("info").SetValue(cfg.promlogConfig.Level)
+	cfg.promlogConfig.Format = &promlog.AllowedFormat{}
+	a.Flag("log.format", "Output format of log messages. One of: [logfmt, json]").
+		Envar("PROMBQ_LOG_FORMAT").Default("logfmt").SetValue(cfg.promlogConfig.Format)
 
 	_, err := a.Parse(os.Args[1:])
 
