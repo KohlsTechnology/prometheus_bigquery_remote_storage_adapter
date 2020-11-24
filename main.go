@@ -128,12 +128,6 @@ func main() {
 
 	logger := promlog.New(&cfg.promlogConfig)
 
-	level.Info(logger).Log("promlog", cfg.promlogConfig.Level)
-	level.Error(logger).Log("Error")
-	level.Warn(logger).Log("Warn")
-	level.Info(logger).Log("Info")
-	level.Debug(logger).Log("Debug")
-
 	level.Info(logger).Log("msg", version.Get())
 
 	level.Info(logger).Log("msg", "Configuration settings:",
