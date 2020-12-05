@@ -51,7 +51,7 @@ test-release:
 
 .PHONY: fmt
 fmt:
-	test -z "$(shell gofmt -l .)"
+	test -z "$(shell gofmt -l . | grep -v ^vendor)"
 
 .PHONY: lint
 lint:
