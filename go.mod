@@ -1,6 +1,6 @@
 module github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter
 
-go 1.14
+go 1.15
 
 require (
 	cloud.google.com/go/bigquery v1.13.0
