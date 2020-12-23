@@ -42,7 +42,9 @@ Consider enabling partition expiration on the destination table based on your da
   --googleAPItableID=metrics_stream
 ```
 
-## Running directly google ADC
+## Running directly Google ADC
+
+Reference: Google Application Default Credentials ([ADC](https://cloud.google.com/docs/authentication/production#automatically))
 
 ```
 GOOGLE_APPLICATION_CREDENTIALS=../../private.key.json ./bigquery_remote_storage_adapter \
