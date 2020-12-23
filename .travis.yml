@@ -6,7 +6,7 @@ sudo: required
 language: go
 matrix:
   include:
-    - go: 1.14.x
+    - go: 1.15.x
 env:
   global:
     - secure: j/acmH3CpQSsD13ofSnuqAEBzFE5SB6v1Sk0+ICXgTeJrzz+N3ohJBiRa10MuEn5+QcFYPF8oGefTbgWVb7iHEMbBI60HQqoLQ7817CDJWxn5nywlE/79IVUuBn+S+TgCXOyj+AG6+4HiRIwCzKDBqIy+TOPs7HH7Tryvhjiu5ievM8wM0+SfElO4BMIZbreCiFpv6at1oUPLSU2G4x6VJ242lXCVdeHCcYahDymA55CQtT1whoutUzDTWbB5YXu7/8IaT+pXl5YicuK1lvxZoJogl+uh58COwWKtWeqxEkvzzRoUjhuIzdNRNldCstVTXDCInZhwEc05e1qddVLluVko2nlQM99e80Llhurg3kK0tgGxA5OpWY/WzEODOY8vyDdCf7Oe/+llNVKyUxnwoDcmHB26Geugoi284Fzqn7qcZMngYvwmxsYcAbkIFfnnNA4FPXwA9556En+bZNX881y6NWyM1rZPnvHHKsPfnszzbZXfXhHzRygLqcn8YczaBzO6AHmbrBva5IrwGBIr372IP2hRvK+UXSUGqO5rCfXHznb5C2A6ew+7eyl9CGCsBw1NoWB76ebsNii1j4O3eLXKBckTRYfAq7+b0fS1HSNZjzVB14Xg2X4JczD5t8FK3d2Z24k6PR/N12QlfZtyEAmxsJG6xWlm1hA87mVQDQ=
