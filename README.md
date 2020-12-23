@@ -120,6 +120,7 @@ $ TAG=v0.0.2 make tag
 $ GITHUB_TOKEN=xxx make clean release
 ```
 
+## Testing
 
 ## Identify the service account from the google API json key file
 ### Use the --googleAPIjsonkeypath argument to indicate the keyfile path (note: the --googleProjectID Id will be extracted from the specified file )
