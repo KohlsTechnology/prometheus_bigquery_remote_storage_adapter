@@ -146,8 +146,12 @@ go test -v -cover ./... -args \
   --googleAPItableID=XXX \
 ```
 
-## Identify the service account via Google Application Default Credentials ([ADC](https://cloud.google.com/docs/authentication/production#automatically))
-### Use the --googleProjectID argument to indicate GCP ProjectId and let ADC identify the default service account
+### Credentials via default service account
+
+Identify the service account via Google Application Default Credentials ([ADC](https://cloud.google.com/docs/authentication/production#automatically)).
+
+Use the `--googleProjectID` argument to indicate GCP Project ID and let ADC identify the default service account. This will only work if you're running on Google's infrastructure (GCP VMs, GKE, etc.).
+
 ```
 go test -v -cover ./... -args \
   --googleProjectID=XXX \
