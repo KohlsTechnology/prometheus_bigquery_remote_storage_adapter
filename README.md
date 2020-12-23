@@ -77,6 +77,47 @@ remote_read:
 
 ```
 
+## Performance Tuning
+
+You will need to tune the storage adapter based on your needs. You have several levers available...
+
+### Requests & limits
+
+When running on a container platform (like Kubernetes), it's important to configure the CPU / memory requests and limits properly. You should be able to get away with just a couple hundred megabytes of RAM (make sure request == limit), but the CPU needs will heavily depend on your environment. Set the CPU requests to the minimum you need to achieve the required performance. We recommend setting the limit higher (keep in mind that anything above the request is not guaranteed). Keep an eye on CPU throttling to help tweak your settings.
+
+### Limit metrics stored long-term
+
+The amount of data you send to BigQuery can be another big constraint. It is easy to overwhelm the BigQuery streaming engine by throwing millions of records at it. You might run into API quota issues or simply have data gaps. We highly recommend not to go crazy when it comes to scrape intervals and also being a lot more selective on what gets actually stored long-term. Depending on your needs, it might make sense to calculate aggregated metrics and store only those long-term.
+Refer to the Prometheus documentation for [remote_write](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#remote_write) and [relabel_config](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config) on how to implement this.
+
+### Prometheus remote_write queue_config
+
+Prometheus allows you to tune the write behavior for remote storage. Please refer to their [documentation](https://prometheus.io/docs/practices/remote_write/) for details.
+### Example `prometheus.yml`
+
+```
+remote_write:
+- url: http://localhost:9201/write
+  remote_timeout: 2m
+  write_relabel_configs:
+  - source_labels: [__name__]
+    separator: ;
+    regex: ALERTS|apiserver_request_.*|kube_namespace_labels
+    replacement: $1
+    action: keep
+  queue_config:
+    capacity: 500
+    max_shards: 200
+    min_shards: 1
+    max_samples_per_send: 100
+    batch_send_deadline: 5s
+    min_backoff: 30ms
+    max_backoff: 100ms
+remote_read:
+- url: http://localhost:9201/read
+  remote_timeout: 1m
+```
+
 ## Building
 
 ### Binary
