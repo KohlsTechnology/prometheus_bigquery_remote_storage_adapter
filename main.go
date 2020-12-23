@@ -159,6 +159,8 @@ func parseFlags() *config {
 		Default("false").BoolVar(&cfg.printVersion)
 	a.Flag("googleAPIjsonkeypath", "Path to json keyfile for GCP service account. JSON keyfile also contains project_id").
 		Envar("PROMBQ_GCP_JSON").ExistingFileVar(&cfg.googleAPIjsonkeypath)
+	googleProjectIDFlagCause := a.Flag("googleProjectID", "The GCP Project ID is mandatory when googleAPIjsonkeypath is not provided").Envar("PROMBQ_GCP_PROJECT_ID")
+	googleProjectIDFlagCause.StringVar(&cfg.googleProjectID)
 	a.Flag("googleAPIdatasetID", "Dataset name as shown in GCP.").
 		Envar("PROMBQ_DATASET").Required().StringVar(&cfg.googleAPIdatasetID)
 	a.Flag("googleAPItableID", "Table name as showon in GCP.").
@@ -175,11 +177,12 @@ func parseFlags() *config {
 	cfg.promlogConfig.Format = &promlog.AllowedFormat{}
 	a.Flag("log.format", "Output format of log messages. One of: [logfmt, json]").
 		Envar("PROMBQ_LOG_FORMAT").Default("logfmt").SetValue(cfg.promlogConfig.Format)
-	googleProjectIDFlagCause := a.Flag("googleProjectID", "The GCP Project ID is mandatory when googleAPIjsonkeypath is not provided").Envar("PROMBQ_GCP_PROJECT_ID")
 	_, err := a.Parse(os.Args[1:])
+	handle(err, a)
 	if cfg.googleAPIjsonkeypath == "" {
 		googleProjectIDFlagCause.Required().StringVar(&cfg.googleProjectID)
 		_, err = a.Parse(os.Args[1:])
+		handle(err, a)
 	}
 
 	if cfg.printVersion {
@@ -187,13 +190,15 @@ func parseFlags() *config {
 		os.Exit(0)
 	}
 
+	return cfg
+}
+
+func handle(err error, application *kingpin.Application) {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "Error parsing commandline arguments"))
-		a.Usage(os.Args[1:])
+		application.Usage(os.Args[1:])
 		os.Exit(2)
 	}
-
-	return cfg
 }
 
 type writer interface {
