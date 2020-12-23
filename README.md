@@ -134,9 +134,10 @@ go test -v -cover ./... -args \
   --googleAPItableID=XXX \
 ```
 
+### Credentials via `GOOGLE_APPLICATION_CREDENTIALS`
 
-## Identify the service account from env var GOOGLE_APPLICATION_CREDENTIALS via Google Application Default Credentials ([ADC](https://cloud.google.com/docs/authentication/production#automatically))
-### Use the --googleProjectID argument to indicate GCP ProjectId and let ADC identify the service account from the GOOGLE_APPLICATION_CREDENTIALS env var
+Use the `--googleProjectID` argument to indicate the GCP Project ID and let _Google Application Default Credentials_ ([ADC](https://cloud.google.com/docs/authentication/production#automatically)) identify the service account from the `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
+
 ```
 GOOGLE_APPLICATION_CREDENTIALS=../../private.key.json \
 go test -v -cover ./... -args \
