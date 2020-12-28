@@ -41,6 +41,7 @@ import (
 )
 
 type config struct {
+	googleProjectID      string
 	googleAPIjsonkeypath string
 	googleAPIdatasetID   string
 	googleAPItableID     string
@@ -132,6 +133,7 @@ func main() {
 
 	level.Info(logger).Log("msg", "Configuration settings:",
 		"googleAPIjsonkeypath", cfg.googleAPIjsonkeypath,
+		"googleProjectID", cfg.googleProjectID,
 		"googleAPIdatasetID", cfg.googleAPIdatasetID,
 		"googleAPItableID", cfg.googleAPItableID,
 		"telemetryPath", cfg.telemetryPath,
@@ -156,7 +158,9 @@ func parseFlags() *config {
 	a.Flag("version", "Print version and build information, then exit").
 		Default("false").BoolVar(&cfg.printVersion)
 	a.Flag("googleAPIjsonkeypath", "Path to json keyfile for GCP service account. JSON keyfile also contains project_id").
-		Envar("PROMBQ_GCP_JSON").Required().ExistingFileVar(&cfg.googleAPIjsonkeypath)
+		Envar("PROMBQ_GCP_JSON").ExistingFileVar(&cfg.googleAPIjsonkeypath)
+	googleProjectIDFlagCause := a.Flag("googleProjectID", "The GCP Project ID is mandatory when googleAPIjsonkeypath is not provided").Envar("PROMBQ_GCP_PROJECT_ID")
+	googleProjectIDFlagCause.StringVar(&cfg.googleProjectID)
 	a.Flag("googleAPIdatasetID", "Dataset name as shown in GCP.").
 		Envar("PROMBQ_DATASET").Required().StringVar(&cfg.googleAPIdatasetID)
 	a.Flag("googleAPItableID", "Table name as showon in GCP.").
@@ -173,21 +177,28 @@ func parseFlags() *config {
 	cfg.promlogConfig.Format = &promlog.AllowedFormat{}
 	a.Flag("log.format", "Output format of log messages. One of: [logfmt, json]").
 		Envar("PROMBQ_LOG_FORMAT").Default("logfmt").SetValue(cfg.promlogConfig.Format)
-
 	_, err := a.Parse(os.Args[1:])
+	handle(err, a)
+	if cfg.googleAPIjsonkeypath == "" {
+		googleProjectIDFlagCause.Required().StringVar(&cfg.googleProjectID)
+		_, err = a.Parse(os.Args[1:])
+		handle(err, a)
+	}
 
 	if cfg.printVersion {
 		version.Print()
 		os.Exit(0)
 	}
 
+	return cfg
+}
+
+func handle(err error, application *kingpin.Application) {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "Error parsing commandline arguments"))
-		a.Usage(os.Args[1:])
+		application.Usage(os.Args[1:])
 		os.Exit(2)
 	}
-
-	return cfg
 }
 
 type writer interface {
@@ -203,17 +214,17 @@ type reader interface {
 func buildClients(logger log.Logger, cfg *config) ([]writer, []reader) {
 	var writers []writer
 	var readers []reader
-	if cfg.googleAPIjsonkeypath != "" {
-		c := bigquerydb.NewClient(
-			log.With(logger, "storage", "BigQuery"),
-			cfg.googleAPIjsonkeypath,
-			cfg.googleAPIdatasetID,
-			cfg.googleAPItableID,
-			cfg.remoteTimeout)
-		prometheus.MustRegister(c)
-		writers = append(writers, c)
-		readers = append(readers, c)
-	}
+
+	c := bigquerydb.NewClient(
+		log.With(logger, "storage", "BigQuery"),
+		cfg.googleAPIjsonkeypath,
+		cfg.googleProjectID,
+		cfg.googleAPIdatasetID,
+		cfg.googleAPItableID,
+		cfg.remoteTimeout)
+	prometheus.MustRegister(c)
+	writers = append(writers, c)
+	readers = append(readers, c)
 	level.Info(logger).Log("msg", "Starting up...")
 	return writers, readers
 }

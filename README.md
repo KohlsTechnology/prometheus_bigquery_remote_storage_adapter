@@ -32,11 +32,23 @@ SELECT metricname, tags, JSON_EXTRACT(tags, '$.some_label')
 
 Consider enabling partition expiration on the destination table based on your data retention and billing requirements (https://cloud.google.com/bigquery/docs/managing-partitioned-tables#partition-expiration).
 
-## Running directly
+
+## Running directly with googleAPIjsonkeypath
 
 ```
 ./bigquery_remote_storage_adapter \
   --googleAPIjsonkeypath=/secret/gcp_service_account.json \
+  --googleAPIdatasetID=prometheus \
+  --googleAPItableID=metrics_stream
+```
+
+## Running directly Google ADC
+
+Reference: Google Application Default Credentials ([ADC](https://cloud.google.com/docs/authentication/production#automatically))
+
+```
+GOOGLE_APPLICATION_CREDENTIALS=../../private.key.json ./bigquery_remote_storage_adapter \
+  --googleProjectID=<GCP Project ID> \
   --googleAPIdatasetID=prometheus \
   --googleAPItableID=metrics_stream
 ```
@@ -53,13 +65,14 @@ You can configure this storage adapter either through command line options or en
 
 | Command Line Flag | Environment Variable | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `--googleAPIjsonkeypath` | `PROMBQ_GCP_JSON` | Yes | | Path to json keyfile for GCP service account. JSON keyfile also contains project_id. |
 | `--googleAPIdatasetID` | `PROMBQ_DATASET` | Yes | | Dataset name as shown in GCP |
 | `--googleAPItableID` | `PROMBQ_TABLE` | Yes | | Table name as showon in GCP |
+| `--googleAPIjsonkeypath` | `PROMBQ_GCP_JSON` | No | | Path to json keyfile for GCP service account. JSON keyfile also contains project_id. |
+| `--googleProjectID` | `PROMBQ_GCP_PROJECT_ID` | Yes (when -googleAPIjsonkeypath is missing)| | The GCP project_id |
 | `--send-timeout` | `PROMBQ_TIMEOUT` | No | `30s` | The timeout to use when sending samples to the remote storage |
 | `--web.listen-address` | `PROMBQ_LISTEN` | No | `:9201` | Address to listen on for web endpoints |
 | `--web.telemetry-path` | `PROMBQ_TELEMETRY` | No | `/metrics` | Address to listen on for web endpoints |
-| `log.level` | `PROMBQ_LOG_LEVEL` | No | `info` | Only log messages with the given severity or above. One of: [debug, info, warn, error] |
+| `--log.level` | `PROMBQ_LOG_LEVEL` | No | `info` | Only log messages with the given severity or above. One of: [debug, info, warn, error] |
 | `--log.format` | `PROMBQ_LOG_FORMAT` | No | `logfmt` | Output format of log messages. One of: [logfmt, json] |
 
 ## Configuring Prometheus
@@ -150,11 +163,41 @@ $ TAG=v0.0.2 make tag
 $ GITHUB_TOKEN=xxx make clean release
 ```
 
-### Testing
+## Testing
+
+### Credentials via Google API json key file
+
+Use the `--googleAPIjsonkeypath` argument to indicate the keyfile path (note: the GCP Project ID will be automatically extracted from the specified file).
+
 
 ```
 go test -v -cover ./... -args \
   --googleAPIjsonkeypath=XXX \
+  --googleAPIdatasetID=XXX \
+  --googleAPItableID=XXX \
+```
+
+### Credentials via `GOOGLE_APPLICATION_CREDENTIALS`
+
+Use the `--googleProjectID` argument to indicate the GCP Project ID and let _Google Application Default Credentials_ ([ADC](https://cloud.google.com/docs/authentication/production#automatically)) identify the service account from the `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
+
+```
+GOOGLE_APPLICATION_CREDENTIALS=../../private.key.json \
+go test -v -cover ./... -args \
+  --googleProjectID=XXX \
+  --googleAPIdatasetID=XXX \
+  --googleAPItableID=XXX \
+```
+
+### Credentials via default service account
+
+Identify the service account via Google Application Default Credentials ([ADC](https://cloud.google.com/docs/authentication/production#automatically)).
+
+Use the `--googleProjectID` argument to indicate GCP Project ID and let ADC identify the default service account. This will only work if you're running on Google's infrastructure (GCP VMs, GKE, etc.).
+
+```
+go test -v -cover ./... -args \
+  --googleProjectID=XXX \
   --googleAPIdatasetID=XXX \
   --googleAPItableID=XXX \
 ```

@@ -50,25 +50,29 @@ type BigqueryClient struct {
 }
 
 // NewClient creates a new Client.
-func NewClient(logger log.Logger, googleAPIjsonkeypath, googleAPIdatasetID, googleAPItableID string, remoteTimeout time.Duration) *BigqueryClient {
+func NewClient(logger log.Logger, googleAPIjsonkeypath, googleProjectID, googleAPIdatasetID, googleAPItableID string, remoteTimeout time.Duration) *BigqueryClient {
 	ctx := context.Background()
+	bigQueryClientOptions := []option.ClientOption{}
+	if googleAPIjsonkeypath != "" {
+		jsonFile, err := os.Open(googleAPIjsonkeypath)
+		if err != nil {
+			level.Error(logger).Log("err", err)
+			os.Exit(1)
+		}
 
-	jsonFile, err := os.Open(googleAPIjsonkeypath)
-	if err != nil {
-		level.Error(logger).Log("err", err)
-		os.Exit(1)
+		byteValue, _ := ioutil.ReadAll(jsonFile)
+
+		var result map[string]interface{}
+		json.Unmarshal([]byte(byteValue), &result)
+
+		jsonFile.Close()
+
+		googleProjectID = fmt.Sprintf("%v", result["project_id"])
+		bigQueryClientOptions = append(bigQueryClientOptions, option.WithCredentialsFile(googleAPIjsonkeypath))
 	}
 
-	byteValue, _ := ioutil.ReadAll(jsonFile)
+	c, err := bigquery.NewClient(ctx, googleProjectID, bigQueryClientOptions...)
 
-	var result map[string]interface{}
-	json.Unmarshal([]byte(byteValue), &result)
-
-	jsonFile.Close()
-
-	projectID := fmt.Sprintf("%v", result["project_id"])
-
-	c, err := bigquery.NewClient(ctx, projectID, option.WithCredentialsFile(googleAPIjsonkeypath))
 	if err != nil {
 		level.Error(logger).Log("err", err)
 		os.Exit(1)
