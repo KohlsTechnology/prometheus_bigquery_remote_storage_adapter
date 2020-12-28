@@ -90,7 +90,7 @@ When running on a container platform (like Kubernetes), it's important to config
 The amount of data you send to BigQuery can be another big constraint. It is easy to overwhelm the BigQuery streaming engine by throwing millions of records at it. You might run into API quota issues or simply have data gaps. We highly recommend not to go crazy when it comes to scrape intervals and also being a lot more selective on what gets actually stored long-term. Depending on your needs, it might make sense to calculate aggregated metrics and store only those long-term.
 Refer to the Prometheus documentation for [remote_write](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#remote_write) and [relabel_config](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config) on how to implement this.
 
-### Prometheus remote_write queue_config
+### Prometheus Remote Storage (remote_write & queue_config)
 
 Prometheus allows you to tune the write behavior for remote storage. Please refer to their [documentation](https://prometheus.io/docs/practices/remote_write/) for details.
 ### Example `prometheus.yml`
