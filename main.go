@@ -163,7 +163,7 @@ func parseFlags() *config {
 	googleProjectIDFlagCause.StringVar(&cfg.googleProjectID)
 	a.Flag("googleAPIdatasetID", "Dataset name as shown in GCP.").
 		Envar("PROMBQ_DATASET").Required().StringVar(&cfg.googleAPIdatasetID)
-	a.Flag("googleAPItableID", "Table name as showon in GCP.").
+	a.Flag("googleAPItableID", "Table name as shown in GCP.").
 		Envar("PROMBQ_TABLE").Required().StringVar(&cfg.googleAPItableID)
 	a.Flag("send-timeout", "The timeout to use when sending samples to the remote storage.").
 		Envar("PROMBQ_TIMEOUT").Default("30s").DurationVar(&cfg.remoteTimeout)
@@ -177,17 +177,19 @@ func parseFlags() *config {
 	cfg.promlogConfig.Format = &promlog.AllowedFormat{}
 	a.Flag("log.format", "Output format of log messages. One of: [logfmt, json]").
 		Envar("PROMBQ_LOG_FORMAT").Default("logfmt").SetValue(cfg.promlogConfig.Format)
+
 	_, err := a.Parse(os.Args[1:])
+
+	if cfg.printVersion {
+		version.Print()
+		os.Exit(0)
+	}
+
 	handle(err, a)
 	if cfg.googleAPIjsonkeypath == "" {
 		googleProjectIDFlagCause.Required().StringVar(&cfg.googleProjectID)
 		_, err = a.Parse(os.Args[1:])
 		handle(err, a)
-	}
-
-	if cfg.printVersion {
-		version.Print()
-		os.Exit(0)
 	}
 
 	return cfg
