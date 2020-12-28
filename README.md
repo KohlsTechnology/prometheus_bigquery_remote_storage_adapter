@@ -81,7 +81,7 @@ remote_read:
 
 You will need to tune the storage adapter based on your needs. You have several levers available...
 
-### Requests & limits
+### Requests & Limits
 
 When running on a container platform (like Kubernetes), it's important to configure the CPU / memory requests and limits properly. You should be able to get away with just a couple hundred megabytes of RAM (make sure request == limit), but the CPU needs will heavily depend on your environment. Set the CPU requests to the minimum you need to achieve the required performance. We recommend setting the limit higher (keep in mind that anything above the request is not guaranteed). Keep an eye on CPU throttling to help tweak your settings.
 
