@@ -33,6 +33,7 @@ var logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
 var googleAPIjsonkeypath string
 var googleAPIdatasetID string
 var googleAPItableID string
+var googleProjectID string
 
 func init() {
 	flag.StringVar(&googleAPIjsonkeypath, "googleAPIjsonkeypath", "foo", "Path to json keyfile for GCP service account. JSON keyfile also contains project_id")
@@ -95,7 +96,7 @@ func TestNaN(t *testing.T) {
 
 	thirtysecondtimeout, _ := time.ParseDuration("30s")
 
-	bqclient := NewClient(logger, googleAPIjsonkeypath, googleAPIdatasetID, googleAPItableID, thirtysecondtimeout)
+	bqclient := NewClient(logger, googleAPIjsonkeypath, googleProjectID, googleAPIdatasetID, googleAPItableID, thirtysecondtimeout)
 
 	if err := bqclient.Write(timeseriesGood); err != nil {
 		fmt.Println("Error sending samples: ", err)
@@ -172,7 +173,7 @@ func TestWriteRead(t *testing.T) {
 
 	thirtysecondtimeout, _ := time.ParseDuration("30s")
 
-	bqclient := NewClient(logger, googleAPIjsonkeypath, googleAPIdatasetID, googleAPItableID, thirtysecondtimeout)
+	bqclient := NewClient(logger, googleAPIjsonkeypath, googleProjectID, googleAPIdatasetID, googleAPItableID, thirtysecondtimeout)
 
 	if err := bqclient.Write(timeseries); err != nil {
 		fmt.Println("Error sending samples: ", err)
