@@ -56,14 +56,18 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleProjectID, googleA
 	if googleAPIjsonkeypath != "" {
 		jsonFile, err := os.Open(googleAPIjsonkeypath)
 		if err != nil {
-			level.Error(logger).Log("err", err)
+			level.Error(logger).Log("err", err) //nolint:errcheck
 			os.Exit(1)
 		}
 
 		byteValue, _ := ioutil.ReadAll(jsonFile)
 
 		var result map[string]interface{}
-		json.Unmarshal([]byte(byteValue), &result)
+		err = json.Unmarshal([]byte(byteValue), &result)
+		if err != nil {
+			level.Error(logger).Log("err", err) //nolint:errcheck
+			os.Exit(1)
+		}
 
 		jsonFile.Close()
 
@@ -74,7 +78,7 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleProjectID, googleA
 	c, err := bigquery.NewClient(ctx, googleProjectID, bigQueryClientOptions...)
 
 	if err != nil {
-		level.Error(logger).Log("err", err)
+		level.Error(logger).Log("err", err) //nolint:errcheck
 		os.Exit(1)
 	}
 
@@ -203,17 +207,6 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 	return nil
 }
 
-func concatLabels(labels map[string]string) string {
-	// 0xff cannot occur in valid UTF-8 sequences, so use it
-	// as a separator here.
-	separator := "\xff"
-	pairs := make([]string, 0, len(labels))
-	for k, v := range labels {
-		pairs = append(pairs, k+separator+v)
-	}
-	return strings.Join(pairs, separator)
-}
-
 // Name identifies the client as a BigQuery client.
 func (c BigqueryClient) Name() string {
 	return "bigquerydb"
@@ -262,7 +255,7 @@ func (c *BigqueryClient) Read(req *prompb.ReadRequest) (*prompb.ReadResponse, er
 		}
 		duration := time.Since(begin).Seconds()
 		c.sqlQueryDuration.Observe(duration)
-		level.Debug(c.logger).Log("msg", "BigQuery SQL query", "rows", iter.TotalRows, "duration", duration)
+		level.Debug(c.logger).Log("msg", "BigQuery SQL query", "rows", iter.TotalRows, "duration", duration) //nolint:errcheck
 	}
 
 	resp := prompb.ReadResponse{
@@ -315,7 +308,7 @@ func (c *BigqueryClient) buildCommand(q *prompb.Query) (string, error) {
 	matchers = append(matchers, fmt.Sprintf("timestamp <= TIMESTAMP_MILLIS(%v)", q.EndTimestampMs))
 
 	query := fmt.Sprintf("SELECT metricname, tags, UNIX_MILLIS(timestamp) as timestamp, value FROM %s.%s WHERE %v ORDER BY timestamp", c.datasetID, c.tableID, strings.Join(matchers, " AND "))
-	level.Debug(c.logger).Log("msg", "BigQuery read", "sql query", query)
+	level.Debug(c.logger).Log("msg", "BigQuery read", "sql query", query) //nolint:errcheck
 
 	return query, nil
 }
@@ -335,7 +328,10 @@ func mergeResult(tsMap map[model.Fingerprint]*prompb.TimeSeries, iter *bigquery.
 			return err
 		}
 
-		sample, metric, labels := rowToSample(row)
+		sample, metric, labels, err := rowToSample(row)
+		if err != nil {
+			return err
+		}
 
 		fp := metric.Fingerprint()
 		ts, ok := tsMap[fp]
@@ -350,10 +346,13 @@ func mergeResult(tsMap map[model.Fingerprint]*prompb.TimeSeries, iter *bigquery.
 }
 
 // rowToSample converts a BigQuery row to a sample and also processes the labels for later consumption
-func rowToSample(row map[string]bigquery.Value) (prompb.Sample, model.Metric, []*prompb.Label) {
+func rowToSample(row map[string]bigquery.Value) (prompb.Sample, model.Metric, []*prompb.Label, error) {
 	var v interface{}
 	labelsJSON := row["tags"].(string)
-	json.Unmarshal([]byte(labelsJSON), &v)
+	err := json.Unmarshal([]byte(labelsJSON), &v)
+	if err != nil {
+		return prompb.Sample{}, nil, nil, err
+	}
 	labels := v.(map[string]interface{})
 	labelPairs := make([]*prompb.Label, 0, len(labels))
 	metric := model.Metric{}
@@ -371,7 +370,7 @@ func rowToSample(row map[string]bigquery.Value) (prompb.Sample, model.Metric, []
 	// Make sure we sort the labels, so the test cases won't blow up
 	sort.Slice(labelPairs, func(i, j int) bool { return labelPairs[i].Name < labelPairs[j].Name })
 	metric[model.LabelName(model.MetricNameLabel)] = model.LabelValue(row["metricname"].(string))
-	return prompb.Sample{Timestamp: row["timestamp"].(int64), Value: row["value"].(float64)}, metric, labelPairs
+	return prompb.Sample{Timestamp: row["timestamp"].(int64), Value: row["value"].(float64)}, metric, labelPairs, nil
 }
 
 func escapeSingleQuotes(str string) string {

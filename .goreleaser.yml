@@ -1,16 +1,12 @@
-# This is an example goreleaser.yaml file with some sane defaults.
-# Make sure to check the documentation at http://goreleaser.com
+---
 project_name: prometheus_bigquery_remote_storage_adapter
 env:
   - CGO_ENABLED=0
-before:
-  hooks:
-    - go mod tidy
 builds:
   - ldflags:
-      - "-X {{.Env.VERSION_PKG}}.Branch={{.Env.BRANCH}}"
-      - "-X {{.Env.VERSION_PKG}}.BuildDate={{.Env.DATE}}"
-      - "-X {{.Env.VERSION_PKG}}.GitSHA1={{.Env.COMMIT}}"
+    - "-X {{.Env.VERSION_PKG}}.Branch={{.Env.BRANCH}}"
+    - "-X {{.Env.VERSION_PKG}}.BuildDate={{.Env.DATE}}"
+    - "-X {{.Env.VERSION_PKG}}.GitSHA1={{.Env.COMMIT}}"
     goos:
       - darwin
       - linux
@@ -18,26 +14,15 @@ builds:
     goarch:
       - amd64
 archives:
-  - replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      386: i386
-      amd64: x86_64
+- replacements:
+    darwin: Darwin
+    linux: Linux
+    windows: Windows
+    386: i386
+    amd64: x86_64
 checksum:
-  name_template: "checksums.txt"
+  name_template: 'checksums.txt'
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  name_template: "{{.Tag}}-next"
 changelog:
   skip: false
-dockers:
-  - binaries:
-      - prometheus_bigquery_remote_storage_adapter
-    image_templates:
-      - "quay.io/kohlstechnology/{{.ProjectName}}:{{ .Tag }}"
-      - "quay.io/kohlstechnology/{{.ProjectName}}:latest"
-    build_flag_templates:
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.name={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
