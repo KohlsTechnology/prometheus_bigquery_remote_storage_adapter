@@ -33,11 +33,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"gopkg.in/alecthomas/kingpin.v2"
-
 	"github.com/prometheus/common/promlog"
-
 	"github.com/prometheus/prometheus/prompb"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 type config struct {
