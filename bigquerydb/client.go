@@ -56,7 +56,7 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleProjectID, googleA
 	if googleAPIjsonkeypath != "" {
 		jsonFile, err := os.Open(googleAPIjsonkeypath)
 		if err != nil {
-			level.Error(logger).Log("err", err)
+			level.Error(logger).Log("err", err) //nolint:errcheck
 			os.Exit(1)
 		}
 
@@ -65,7 +65,7 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleProjectID, googleA
 		var result map[string]interface{}
 		err = json.Unmarshal([]byte(byteValue), &result)
 		if err != nil {
-			level.Error(logger).Log("err", err)
+			level.Error(logger).Log("err", err) //nolint:errcheck
 			os.Exit(1)
 		}
 
@@ -78,7 +78,7 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleProjectID, googleA
 	c, err := bigquery.NewClient(ctx, googleProjectID, bigQueryClientOptions...)
 
 	if err != nil {
-		level.Error(logger).Log("err", err)
+		level.Error(logger).Log("err", err) //nolint:errcheck
 		os.Exit(1)
 	}
 
@@ -255,7 +255,7 @@ func (c *BigqueryClient) Read(req *prompb.ReadRequest) (*prompb.ReadResponse, er
 		}
 		duration := time.Since(begin).Seconds()
 		c.sqlQueryDuration.Observe(duration)
-		level.Debug(c.logger).Log("msg", "BigQuery SQL query", "rows", iter.TotalRows, "duration", duration)
+		level.Debug(c.logger).Log("msg", "BigQuery SQL query", "rows", iter.TotalRows, "duration", duration) //nolint:errcheck
 	}
 
 	resp := prompb.ReadResponse{
@@ -308,7 +308,7 @@ func (c *BigqueryClient) buildCommand(q *prompb.Query) (string, error) {
 	matchers = append(matchers, fmt.Sprintf("timestamp <= TIMESTAMP_MILLIS(%v)", q.EndTimestampMs))
 
 	query := fmt.Sprintf("SELECT metricname, tags, UNIX_MILLIS(timestamp) as timestamp, value FROM %s.%s WHERE %v ORDER BY timestamp", c.datasetID, c.tableID, strings.Join(matchers, " AND "))
-	level.Debug(c.logger).Log("msg", "BigQuery read", "sql query", query)
+	level.Debug(c.logger).Log("msg", "BigQuery read", "sql query", query) //nolint:errcheck
 
 	return query, nil
 }

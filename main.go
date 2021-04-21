@@ -127,9 +127,9 @@ func main() {
 
 	logger := promlog.New(&cfg.promlogConfig)
 
-	level.Info(logger).Log("msg", version.Get())
+	level.Info(logger).Log("msg", version.Get()) //nolint:errcheck
 
-	level.Info(logger).Log("msg", "Configuration settings:",
+	level.Info(logger).Log("msg", "Configuration settings:", //nolint:errcheck
 		"googleAPIjsonkeypath", cfg.googleAPIjsonkeypath,
 		"googleProjectID", cfg.googleProjectID,
 		"googleAPIdatasetID", cfg.googleAPIdatasetID,
@@ -140,7 +140,7 @@ func main() {
 
 	writers, readers := buildClients(logger, cfg)
 	if err := serve(logger, cfg.listenAddr, writers, readers); err != nil {
-		level.Error(logger).Log("msg", "Failed to listen", "addr", cfg.listenAddr, "err", err)
+		level.Error(logger).Log("msg", "Failed to listen", "addr", cfg.listenAddr, "err", err) //nolint:errcheck
 		os.Exit(1)
 	}
 }
@@ -225,7 +225,7 @@ func buildClients(logger log.Logger, cfg *config) ([]writer, []reader) {
 	prometheus.MustRegister(c)
 	writers = append(writers, c)
 	readers = append(readers, c)
-	level.Info(logger).Log("msg", "Starting up...")
+	level.Info(logger).Log("msg", "Starting up...") //nolint:errcheck
 	return writers, readers
 }
 
@@ -234,7 +234,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 		begin := time.Now()
 		compressed, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			level.Error(logger).Log("msg", "Read error", "err", err.Error())
+			level.Error(logger).Log("msg", "Read error", "err", err.Error()) //nolint:errcheck
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			writeErrors.Inc()
 			return
@@ -242,7 +242,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 
 		reqBuf, err := snappy.Decode(nil, compressed)
 		if err != nil {
-			level.Error(logger).Log("msg", "Decode error", "err", err.Error())
+			level.Error(logger).Log("msg", "Decode error", "err", err.Error()) //nolint:errcheck
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			writeErrors.Inc()
 			return
@@ -250,7 +250,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 
 		var req prompb.WriteRequest
 		if err := proto.Unmarshal(reqBuf, &req); err != nil {
-			level.Error(logger).Log("msg", "Unmarshal error", "err", err.Error())
+			level.Error(logger).Log("msg", "Unmarshal error", "err", err.Error()) //nolint:errcheck
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			writeErrors.Inc()
 			return
@@ -274,7 +274,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 		begin := time.Now()
 		compressed, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			level.Error(logger).Log("msg", "Read error", "err", err.Error())
+			level.Error(logger).Log("msg", "Read error", "err", err.Error()) //nolint:errcheck
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			readErrors.Inc()
 			return
@@ -282,7 +282,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 
 		reqBuf, err := snappy.Decode(nil, compressed)
 		if err != nil {
-			level.Error(logger).Log("msg", "Decode error", "err", err.Error())
+			level.Error(logger).Log("msg", "Decode error", "err", err.Error()) //nolint:errcheck
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			readErrors.Inc()
 			return
@@ -290,7 +290,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 
 		var req prompb.ReadRequest
 		if err := proto.Unmarshal(reqBuf, &req); err != nil {
-			level.Error(logger).Log("msg", "Unmarshal error", "err", err.Error())
+			level.Error(logger).Log("msg", "Unmarshal error", "err", err.Error()) //nolint:errcheck
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			readErrors.Inc()
 			return
@@ -307,7 +307,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 		var resp *prompb.ReadResponse
 		resp, err = reader.Read(&req)
 		if err != nil {
-			level.Warn(logger).Log("msg", "Error executing query", "query", req, "storage", reader.Name(), "err", err)
+			level.Warn(logger).Log("msg", "Error executing query", "query", req, "storage", reader.Name(), "err", err) //nolint:errcheck
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			readErrors.Inc()
 			return
@@ -325,12 +325,12 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 
 		compressed = snappy.Encode(nil, data)
 		if _, err := w.Write(compressed); err != nil {
-			level.Warn(logger).Log("msg", "Error writing response", "storage", reader.Name(), "err", err)
+			level.Warn(logger).Log("msg", "Error writing response", "storage", reader.Name(), "err", err) //nolint:errcheck
 			readErrors.Inc()
 		}
 		duration := time.Since(begin).Seconds()
 		readProcessingDuration.WithLabelValues(writers[0].Name()).Observe(duration)
-		level.Debug(logger).Log("msg", "/read", "duration", duration)
+		level.Debug(logger).Log("msg", "/read", "duration", duration) //nolint:errcheck
 	})
 
 	return http.ListenAndServe(addr, nil)
@@ -341,7 +341,7 @@ func sendSamples(logger log.Logger, w writer, timeseries []*prompb.TimeSeries) {
 	err := w.Write(timeseries)
 	duration := time.Since(begin).Seconds()
 	if err != nil {
-		level.Warn(logger).Log("msg", "Error sending samples to remote storage", "err", err, "storage", w.Name(), "num_samples", len(timeseries))
+		level.Warn(logger).Log("msg", "Error sending samples to remote storage", "err", err, "storage", w.Name(), "num_samples", len(timeseries)) //nolint:errcheck
 		failedSamples.WithLabelValues(w.Name()).Add(float64(len(timeseries)))
 		writeErrors.Inc()
 	} else {
