@@ -63,7 +63,11 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleProjectID, googleA
 		byteValue, _ := ioutil.ReadAll(jsonFile)
 
 		var result map[string]interface{}
-		json.Unmarshal([]byte(byteValue), &result)
+		err = json.Unmarshal([]byte(byteValue), &result)
+		if err != nil {
+			level.Error(logger).Log("err", err)
+			os.Exit(1)
+		}
 
 		jsonFile.Close()
 
@@ -324,7 +328,10 @@ func mergeResult(tsMap map[model.Fingerprint]*prompb.TimeSeries, iter *bigquery.
 			return err
 		}
 
-		sample, metric, labels := rowToSample(row)
+		sample, metric, labels, err := rowToSample(row)
+		if err != nil {
+			return err
+		}
 
 		fp := metric.Fingerprint()
 		ts, ok := tsMap[fp]
@@ -339,10 +346,13 @@ func mergeResult(tsMap map[model.Fingerprint]*prompb.TimeSeries, iter *bigquery.
 }
 
 // rowToSample converts a BigQuery row to a sample and also processes the labels for later consumption
-func rowToSample(row map[string]bigquery.Value) (prompb.Sample, model.Metric, []*prompb.Label) {
+func rowToSample(row map[string]bigquery.Value) (prompb.Sample, model.Metric, []*prompb.Label, error) {
 	var v interface{}
 	labelsJSON := row["tags"].(string)
-	json.Unmarshal([]byte(labelsJSON), &v)
+	err := json.Unmarshal([]byte(labelsJSON), &v)
+	if err != nil {
+		return prompb.Sample{}, nil, nil, err
+	}
 	labels := v.(map[string]interface{})
 	labelPairs := make([]*prompb.Label, 0, len(labels))
 	metric := model.Metric{}
@@ -360,7 +370,7 @@ func rowToSample(row map[string]bigquery.Value) (prompb.Sample, model.Metric, []
 	// Make sure we sort the labels, so the test cases won't blow up
 	sort.Slice(labelPairs, func(i, j int) bool { return labelPairs[i].Name < labelPairs[j].Name })
 	metric[model.LabelName(model.MetricNameLabel)] = model.LabelValue(row["metricname"].(string))
-	return prompb.Sample{Timestamp: row["timestamp"].(int64), Value: row["value"].(float64)}, metric, labelPairs
+	return prompb.Sample{Timestamp: row["timestamp"].(int64), Value: row["value"].(float64)}, metric, labelPairs, nil
 }
 
 func escapeSingleQuotes(str string) string {
