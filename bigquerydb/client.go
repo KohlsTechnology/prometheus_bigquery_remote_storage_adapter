@@ -203,17 +203,6 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 	return nil
 }
 
-func concatLabels(labels map[string]string) string {
-	// 0xff cannot occur in valid UTF-8 sequences, so use it
-	// as a separator here.
-	separator := "\xff"
-	pairs := make([]string, 0, len(labels))
-	for k, v := range labels {
-		pairs = append(pairs, k+separator+v)
-	}
-	return strings.Join(pairs, separator)
-}
-
 // Name identifies the client as a BigQuery client.
 func (c BigqueryClient) Name() string {
 	return "bigquerydb"
