@@ -61,7 +61,7 @@ To show all flags:
 
 ## Configuration
 
-You can configure this storage adapter either through command line options or environment variables. The later is required if you're using our docker image.
+You can configure this storage adapter either through command line options or environment variables. The latter is required if you're using our docker image.
 
 | Command Line Flag | Environment Variable | Required | Default | Description |
 | --- | --- | --- | --- | --- |
@@ -84,7 +84,7 @@ To configure Prometheus to send samples to this binary, add the following to you
 remote_write:
   - url: "http://localhost:9201/write"
 
-# Remote write configuration (for Google BigQuery).
+# Remote read configuration (for Google BigQuery).
 remote_read:
   - url: "http://localhost:9201/read"
 
