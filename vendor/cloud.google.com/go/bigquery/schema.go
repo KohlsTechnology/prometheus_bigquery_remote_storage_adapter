@@ -70,6 +70,41 @@ type FieldSchema struct {
 
 	// Describes the nested schema if Type is set to Record.
 	Schema Schema
+
+	// Maximum length of the field for STRING or BYTES type.
+	//
+	// It is invalid to set value for types other than STRING or BYTES.
+	//
+	// For STRING type, this represents the maximum UTF-8 length of strings
+	// allowed in the field. For BYTES type, this represents the maximum
+	// number of bytes in the field.
+	MaxLength int64
+
+	// Precision can be used to constrain the maximum number of
+	// total digits allowed for NUMERIC or BIGNUMERIC types.
+	//
+	// It is invalid to set values for Precision for types other than
+	// NUMERIC or BIGNUMERIC.
+	//
+	// For NUMERIC type, acceptable values for Precision must
+	// be: 1 ≤ (Precision - Scale) ≤ 29. Values for Scale
+	// must be: 0 ≤ Scale ≤ 9.
+	//
+	// For BIGNUMERIC type, acceptable values for Precision must
+	// be: 1 ≤ (Precision - Scale) ≤ 38. Values for Scale
+	// must be: 0 ≤ Scale ≤ 38.
+	Precision int64
+
+	// Scale can be used to constrain the maximum number of digits
+	// in the fractional part of a NUMERIC or BIGNUMERIC type.
+	//
+	// If the Scale value is set, the Precision value must be set as well.
+	//
+	// It is invalid to set values for Scale for types other than
+	// NUMERIC or BIGNUMERIC.
+	//
+	// See the Precision field for additional guidance about valid values.
+	Scale int64
 }
 
 func (fs *FieldSchema) toBQ() *bq.TableFieldSchema {
@@ -78,6 +113,9 @@ func (fs *FieldSchema) toBQ() *bq.TableFieldSchema {
 		Name:        fs.Name,
 		Type:        string(fs.Type),
 		PolicyTags:  fs.PolicyTags.toBQ(),
+		MaxLength:   fs.MaxLength,
+		Precision:   fs.Precision,
+		Scale:       fs.Scale,
 	}
 
 	if fs.Repeated {
@@ -133,6 +171,9 @@ func bqToFieldSchema(tfs *bq.TableFieldSchema) *FieldSchema {
 		Required:    tfs.Mode == "REQUIRED",
 		Type:        FieldType(tfs.Type),
 		PolicyTags:  bqToPolicyTagList(tfs.PolicyTags),
+		MaxLength:   tfs.MaxLength,
+		Precision:   tfs.Precision,
+		Scale:       tfs.Scale,
 	}
 
 	for _, f := range tfs.Fields {
@@ -182,30 +223,36 @@ const (
 	// GeographyFieldType is a string field type.  Geography types represent a set of points
 	// on the Earth's surface, represented in Well Known Text (WKT) format.
 	GeographyFieldType FieldType = "GEOGRAPHY"
+	// BigNumericFieldType is a numeric field type that supports values of larger precision
+	// and scale than the NumericFieldType.
+	BigNumericFieldType FieldType = "BIGNUMERIC"
 )
 
 var (
 	errEmptyJSONSchema = errors.New("bigquery: empty JSON schema")
 	fieldTypes         = map[FieldType]bool{
-		StringFieldType:    true,
-		BytesFieldType:     true,
-		IntegerFieldType:   true,
-		FloatFieldType:     true,
-		BooleanFieldType:   true,
-		TimestampFieldType: true,
-		RecordFieldType:    true,
-		DateFieldType:      true,
-		TimeFieldType:      true,
-		DateTimeFieldType:  true,
-		NumericFieldType:   true,
-		GeographyFieldType: true,
+		StringFieldType:     true,
+		BytesFieldType:      true,
+		IntegerFieldType:    true,
+		FloatFieldType:      true,
+		BooleanFieldType:    true,
+		TimestampFieldType:  true,
+		RecordFieldType:     true,
+		DateFieldType:       true,
+		TimeFieldType:       true,
+		DateTimeFieldType:   true,
+		NumericFieldType:    true,
+		GeographyFieldType:  true,
+		BigNumericFieldType: true,
 	}
 	// The API will accept alias names for the types based on the Standard SQL type names.
 	fieldAliases = map[FieldType]FieldType{
-		"BOOL":    BooleanFieldType,
-		"FLOAT64": FloatFieldType,
-		"INT64":   IntegerFieldType,
-		"STRUCT":  RecordFieldType,
+		"BOOL":       BooleanFieldType,
+		"FLOAT64":    FloatFieldType,
+		"INT64":      IntegerFieldType,
+		"STRUCT":     RecordFieldType,
+		"DECIMAL":    NumericFieldType,
+		"BIGDECIMAL": BigNumericFieldType,
 	}
 )
 
@@ -346,6 +393,10 @@ func inferFieldSchema(fieldName string, rt reflect.Type, nullable bool) (*FieldS
 	case typeOfDateTime:
 		return &FieldSchema{Required: true, Type: DateTimeFieldType}, nil
 	case typeOfRat:
+		// We automatically infer big.Rat values as NUMERIC as we cannot
+		// determine precision/scale from the type.  Users who want the
+		// larger precision of BIGNUMERIC need to manipulate the inferred
+		// schema.
 		return &FieldSchema{Required: !nullable, Type: NumericFieldType}, nil
 	}
 	if ft := nullableFieldType(rt); ft != "" {
