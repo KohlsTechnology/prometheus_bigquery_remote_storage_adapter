@@ -175,7 +175,7 @@ github.com/prometheus/procfs/internal/util
 # github.com/prometheus/prometheus v2.5.0+incompatible
 ## explicit
 github.com/prometheus/prometheus/prompb
-# github.com/stretchr/testify v1.6.1
+# github.com/stretchr/testify v1.7.0
 ## explicit; go 1.13
 github.com/stretchr/testify/assert
 # go.opencensus.io v0.23.0
