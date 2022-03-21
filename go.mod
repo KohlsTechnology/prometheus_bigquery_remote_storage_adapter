@@ -3,7 +3,7 @@ module github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter
 go 1.17
 
 require (
-	cloud.google.com/go/bigquery v1.29.0
+	cloud.google.com/go/bigquery v1.30.0
 	github.com/go-kit/kit v0.10.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/snappy v0.0.4
@@ -19,7 +19,7 @@ require (
 require (
 	cloud.google.com/go v0.100.2 // indirect
 	cloud.google.com/go/compute v1.5.0 // indirect
-	cloud.google.com/go/iam v0.1.1 // indirect
+	cloud.google.com/go/iam v0.3.0 // indirect
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

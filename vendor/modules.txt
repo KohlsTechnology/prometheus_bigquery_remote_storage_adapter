@@ -9,15 +9,15 @@ cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/uid
 cloud.google.com/go/internal/version
-# cloud.google.com/go/bigquery v1.29.0
+# cloud.google.com/go/bigquery v1.30.0
 ## explicit; go 1.15
 cloud.google.com/go/bigquery
 cloud.google.com/go/bigquery/internal
 # cloud.google.com/go/compute v1.5.0
 ## explicit; go 1.15
 cloud.google.com/go/compute/metadata
-# cloud.google.com/go/iam v0.1.1
-## explicit; go 1.11
+# cloud.google.com/go/iam v0.3.0
+## explicit; go 1.15
 cloud.google.com/go/iam
 # github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 ## explicit
