@@ -12,7 +12,7 @@ jobs:
   test:
     strategy:
       matrix:
-        go-version: [1.17.8, 1.16.11]
+        go-version: [1.18.1, 1.17.9]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
@@ -27,7 +27,7 @@ jobs:
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v3.1.0
       with:
-        version: v1.43.0
+        version: v1.45.2
         skip-go-installation: true
         skip-pkg-cache: true
         skip-build-cache: true
@@ -44,7 +44,7 @@ jobs:
       uses: goreleaser/goreleaser-action@v2
       with:
         install-only: true
-        version: v1.0.0
+        version: v1.7.0
     - name: Test GoReleaser
       run: make test-release
   deploy:
@@ -57,7 +57,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.17.8
+          go-version: 1.18.1
       - name: Prepare
         id: prep
         run: |
@@ -83,7 +83,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v2
         with:
           install-only: true
-          version: v1.0.0
+          version: v1.7.0
       - name: Run GoReleaser
         run: make release
         env:
