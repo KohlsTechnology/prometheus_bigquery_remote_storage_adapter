@@ -1,5 +1,29 @@
 # Changes
 
+## [1.31.0](https://github.com/googleapis/google-cloud-go/compare/bigquery/v1.30.2...bigquery/v1.31.0) (2022-04-12)
+
+
+### Features
+
+* **bigquery/storage:** Deprecate format specific `row_count` field in Read API ([57896d1](https://github.com/googleapis/google-cloud-go/commit/57896d1491c04fa53d3f3e2344ef10c3d91c4b65))
+* **bigquery:** enhance SchemaFromJSON ([#5877](https://github.com/googleapis/google-cloud-go/issues/5877)) ([16289f0](https://github.com/googleapis/google-cloud-go/commit/16289f086ae15ea18c70d387b542796e099d4a09))
+* **bigquery:** support table cloning ([#5672](https://github.com/googleapis/google-cloud-go/issues/5672)) ([74c120a](https://github.com/googleapis/google-cloud-go/commit/74c120a81d2181d9809e5d3c0462bd859297d073))
+
+### [1.30.2](https://github.com/googleapis/google-cloud-go/compare/bigquery/v1.30.1...bigquery/v1.30.2) (2022-03-30)
+
+
+### Bug Fixes
+
+* **bigquery/storage/managedwriter/adapt:** fix enum append ([#5819](https://github.com/googleapis/google-cloud-go/issues/5819)) ([9eeaf0f](https://github.com/googleapis/google-cloud-go/commit/9eeaf0fe9de6e9583a6994e49f95ad524bc9e68e))
+
+### [1.30.1](https://github.com/googleapis/google-cloud-go/compare/bigquery/v1.30.0...bigquery/v1.30.1) (2022-03-30)
+
+
+### Bug Fixes
+
+* **bigquery/storage/managedwriter:** correct enum processing in NormalizeDescriptor ([#5811](https://github.com/googleapis/google-cloud-go/issues/5811)) ([52cf48e](https://github.com/googleapis/google-cloud-go/commit/52cf48edff487352c2755de86e2ea069b1b29617))
+* **bigquery:** improve retry for table create ([#5807](https://github.com/googleapis/google-cloud-go/issues/5807)) ([f27d1dc](https://github.com/googleapis/google-cloud-go/commit/f27d1dc43acbd437f517c05d65c992644f3f3111))
+
 ## [1.30.0](https://github.com/googleapis/google-cloud-go/compare/bigquery/v1.29.0...bigquery/v1.30.0) (2022-03-16)
 
 
