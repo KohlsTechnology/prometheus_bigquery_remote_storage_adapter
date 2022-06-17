@@ -74,7 +74,7 @@ jobs:
           password: ${{ secrets.QUAY_TOKEN }}
           registry: quay.io
       - name: Build and push to quay.io
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           push: true
