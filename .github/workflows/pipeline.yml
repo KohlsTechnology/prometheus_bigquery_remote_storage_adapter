@@ -31,15 +31,14 @@ jobs:
         skip-go-installation: true
         skip-pkg-cache: true
         skip-build-cache: true
-    # TODO: unit tests require cloud credentials
-    #- name: Test
-    #  run: make test-unit
-    #- name: Upload coverage to Codecov
-    #  uses: codecov/codecov-action@v1
-    #  with:
-    #    fail_ci_if_error: true
-    #    files: ./coverage.txt
-    #    verbose: true
+    - name: Test
+      run: make test-unit
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3.1.0
+      with:
+        fail_ci_if_error: true
+        files: ./coverage.txt
+        verbose: true
     - name: Install GoReleaser
       uses: goreleaser/goreleaser-action@v2
       with:
