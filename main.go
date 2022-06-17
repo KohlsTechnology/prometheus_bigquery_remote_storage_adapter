@@ -15,13 +15,16 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter/bigquerydb"
@@ -139,10 +142,7 @@ func main() {
 		"remoteTimeout", cfg.remoteTimeout)
 
 	writers, readers := buildClients(logger, cfg)
-	if err := serve(logger, cfg.listenAddr, writers, readers); err != nil {
-		level.Error(logger).Log("msg", "Failed to listen", "addr", cfg.listenAddr, "err", err) //nolint:errcheck
-		os.Exit(1)
-	}
+	serve(logger, cfg.listenAddr, writers, readers)
 }
 
 func parseFlags() *config {
@@ -229,7 +229,24 @@ func buildClients(logger log.Logger, cfg *config) ([]writer, []reader) {
 	return writers, readers
 }
 
-func serve(logger log.Logger, addr string, writers []writer, readers []reader) error {
+func serve(logger log.Logger, addr string, writers []writer, readers []reader) {
+	srv := &http.Server{
+		Addr: addr,
+	}
+	idleConnectionClosed := make(chan struct{})
+
+	go func() {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGTERM, os.Interrupt)
+		oscall := <-sigChan
+		level.Warn(logger).Log("msg", "System Call Received stopping HTTP Server...", "SystemCall", oscall) //nolint:errcheck
+		if err := srv.Shutdown(context.Background()); err != nil {
+			level.Error(logger).Log("msg", "Shutdown Error", "err", err) //nolint:errcheck
+			os.Exit(1)
+		}
+		close(idleConnectionClosed)
+		level.Warn(logger).Log("msg", "HTTP Server Shutdown, and connections closed") //nolint:errcheck
+	}()
 	http.HandleFunc("/write", func(w http.ResponseWriter, r *http.Request) {
 		level.Debug(logger).Log("msg", "Request", "method", r.Method, "path", r.URL.Path) //nolint:errcheck
 
@@ -338,7 +355,12 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 		level.Debug(logger).Log("msg", "/read", "duration", duration) //nolint:errcheck
 	})
 
-	return http.ListenAndServe(addr, nil)
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		level.Error(logger).Log("msg", "Failed to listen", "addr", addr, "err", err) //nolint:errcheck
+		os.Exit(1)
+	}
+
+	<-idleConnectionClosed
 }
 
 func sendSamples(logger log.Logger, w writer, timeseries []*prompb.TimeSeries) {

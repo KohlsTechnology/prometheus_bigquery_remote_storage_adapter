@@ -61,7 +61,7 @@ To show all flags:
 
 ## Configuration
 
-You can configure this storage adapter either through command line options or environment variables. The later is required if you're using our docker image.
+You can configure this storage adapter either through command line options or environment variables. The latter is required if you're using our docker image.
 
 | Command Line Flag | Environment Variable | Required | Default | Description |
 | --- | --- | --- | --- | --- |
@@ -84,7 +84,7 @@ To configure Prometheus to send samples to this binary, add the following to you
 remote_write:
   - url: "http://localhost:9201/write"
 
-# Remote write configuration (for Google BigQuery).
+# Remote read configuration (for Google BigQuery).
 remote_read:
   - url: "http://localhost:9201/read"
 
@@ -201,3 +201,16 @@ go test -v -cover ./... -args \
   --googleAPIdatasetID=XXX \
   --googleAPItableID=XXX \
 ```
+
+## Prometheus Metrics Offered
+
+| Metric Name | Metric Type | Short Description |
+| --- | --- | --- |
+| storage_bigquery_received_samples_total | Counter | Total number of received samples. |
+| storage_bigquery_sent_samples_total | Counter | Total number of processed samples sent to remote storage that share the same description. |
+| storage_bigquery_failed_samples_total | Counter | Total number of processed samples which failed on send to remote storage that share the same description. |
+| storage_bigquery_sent_batch_duration_seconds | Histogram | Duration of sample batch send calls to the remote storage that share the same description. |
+| storage_bigquery_write_errors_total | Counter | Total number of write errors to BigQuery. |
+| storage_bigquery_read_errors_total | Counter | Total number of read errors from BigQuery |
+| storage_bigquery_write_api_seconds | Histogram | Duration of the write api processing that share the same description. | 
+| storage_bigquery_read_api_seconds | Histogram | Duration of the read api processing that share the same description. |
