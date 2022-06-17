@@ -248,6 +248,8 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) {
 		level.Warn(logger).Log("msg", "HTTP Server Shutdown, and connections closed") //nolint:errcheck
 	}()
 	http.HandleFunc("/write", func(w http.ResponseWriter, r *http.Request) {
+		level.Debug(logger).Log("msg", "Request", "method", r.Method, "path", r.URL.Path) //nolint:errcheck
+
 		begin := time.Now()
 		compressed, err := ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -285,9 +287,12 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) {
 		duration := time.Since(begin).Seconds()
 		writeProcessingDuration.WithLabelValues(writers[0].Name()).Observe(duration)
 
+		level.Debug(logger).Log("msg", "/write", "duration", duration) //nolint:errcheck
 	})
 
 	http.HandleFunc("/read", func(w http.ResponseWriter, r *http.Request) {
+		level.Debug(logger).Log("msg", "Request", "method", r.Method, "path", r.URL.Path) //nolint:errcheck
+
 		begin := time.Now()
 		compressed, err := ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -367,6 +372,7 @@ func sendSamples(logger log.Logger, w writer, timeseries []*prompb.TimeSeries) {
 		failedSamples.WithLabelValues(w.Name()).Add(float64(len(timeseries)))
 		writeErrors.Inc()
 	} else {
+		level.Debug(logger).Log("msg", "Sent samples", "num_samples", len(timeseries)) //nolint:errcheck
 		sentSamples.WithLabelValues(w.Name()).Add(float64(len(timeseries)))
 		sentBatchDuration.WithLabelValues(w.Name()).Observe(duration)
 	}
