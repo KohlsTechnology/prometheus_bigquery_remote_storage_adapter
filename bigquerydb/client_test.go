@@ -1,3 +1,5 @@
+//go:build e2e
+
 /*
 Copyright 2020 Kohl's Department Stores, Inc.
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// example call: go test -v -args -googleAPIjsonkeypath=../../project-credential.json -googleAPIdatasetID=prometheus_test -googleAPItableID=test_stream ./...
+// example call: go test -tags=e2e -v -args -googleAPIjsonkeypath=../../project-credential.json -googleAPIdatasetID=prometheus_test -googleAPItableID=test_stream ./...
 
 var logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
 
