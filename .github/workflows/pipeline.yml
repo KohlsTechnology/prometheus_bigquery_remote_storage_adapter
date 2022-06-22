@@ -40,7 +40,7 @@ jobs:
         files: ./coverage.txt
         verbose: true
     - name: Install GoReleaser
-      uses: goreleaser/goreleaser-action@v2
+      uses: goreleaser/goreleaser-action@v3
       with:
         install-only: true
         version: v1.7.0
@@ -79,7 +79,7 @@ jobs:
           push: true
           tags: ${{ steps.prep.outputs.tags }}
       - name: Install GoReleaser
-        uses: goreleaser/goreleaser-action@v2
+        uses: goreleaser/goreleaser-action@v3
         with:
           install-only: true
           version: v1.7.0
