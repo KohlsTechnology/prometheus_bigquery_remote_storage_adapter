@@ -63,7 +63,7 @@ func (c *Client) JobFromProject(ctx context.Context, projectID, jobID, location 
 	ctx = trace.StartSpan(ctx, "cloud.google.com/go/bigquery.JobFromProject")
 	defer func() { trace.EndSpan(ctx, err) }()
 
-	bqjob, err := c.getJobInternal(ctx, jobID, location, projectID, "configuration", "jobReference", "status", "statistics")
+	bqjob, err := c.getJobInternal(ctx, jobID, location, projectID, "user_email", "configuration", "jobReference", "status", "statistics")
 	if err != nil {
 		return nil, err
 	}
@@ -918,7 +918,7 @@ func (j *Job) setStatus(qs *bq.JobStatus) error {
 	}
 	state, ok := stateMap[qs.State]
 	if !ok {
-		return fmt.Errorf("unexpected job state: %v", qs.State)
+		return fmt.Errorf("unexpected job state: %s", qs.State)
 	}
 	j.lastStatus = &JobStatus{
 		State: state,
