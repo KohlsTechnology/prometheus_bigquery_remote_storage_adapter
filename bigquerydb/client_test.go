@@ -16,7 +16,6 @@ limitations under the License.
 package bigquerydb
 
 import (
-	"flag"
 	"fmt"
 	"math"
 	"os"
@@ -28,20 +27,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// example call: go test -tags=e2e -v -args -googleAPIjsonkeypath=../../project-credential.json -googleAPIdatasetID=prometheus_test -googleAPItableID=test_stream ./...
-
 var logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
 
-var googleAPIjsonkeypath string
-var googleAPIdatasetID string
-var googleAPItableID string
-var googleProjectID string
-
-func init() {
-	flag.StringVar(&googleAPIjsonkeypath, "googleAPIjsonkeypath", "foo", "Path to json keyfile for GCP service account. JSON keyfile also contains project_id")
-	flag.StringVar(&googleAPIdatasetID, "googleAPIdatasetID", "bar", "Dataset name as shown in GCP.")
-	flag.StringVar(&googleAPItableID, "googleAPItableID", "baz", "Table name as shown in GCP.")
-}
+var googleAPIdatasetID = os.Getenv("BQ_DATASET_NAME")
+var googleAPItableID = os.Getenv("BQ_TABLE_NAME")
+var googleProjectID = os.Getenv("GCP_PROJECT_ID")
 
 func TestNaN(t *testing.T) {
 
@@ -98,7 +88,7 @@ func TestNaN(t *testing.T) {
 
 	thirtysecondtimeout, _ := time.ParseDuration("30s")
 
-	bqclient := NewClient(logger, googleAPIjsonkeypath, googleProjectID, googleAPIdatasetID, googleAPItableID, thirtysecondtimeout)
+	bqclient := NewClient(logger, "", googleProjectID, googleAPIdatasetID, googleAPItableID, thirtysecondtimeout)
 
 	if err := bqclient.Write(timeseriesGood); err != nil {
 		fmt.Println("Error sending samples: ", err)
@@ -175,7 +165,7 @@ func TestWriteRead(t *testing.T) {
 
 	thirtysecondtimeout, _ := time.ParseDuration("30s")
 
-	bqclient := NewClient(logger, googleAPIjsonkeypath, googleProjectID, googleAPIdatasetID, googleAPItableID, thirtysecondtimeout)
+	bqclient := NewClient(logger, "", googleProjectID, googleAPIdatasetID, googleAPItableID, thirtysecondtimeout)
 
 	if err := bqclient.Write(timeseries); err != nil {
 		fmt.Println("Error sending samples: ", err)

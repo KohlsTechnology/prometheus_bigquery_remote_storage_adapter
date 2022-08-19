@@ -6,6 +6,9 @@ VERSION_PKG = github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adap
 LDFLAGS := "-X ${VERSION_PKG}.Branch=${BRANCH} -X ${VERSION_PKG}.BuildDate=${DATE} \
 	-X ${VERSION_PKG}.GitSHA1=${COMMIT}"
 TAG?=""
+GCP_PROJECT_ID?="kohlsdev-prombq-adaptor"
+BQ_DATASET_NAME?="prometheus"
+BQ_TABLE_NAME?="metrics"
 
 .PHONY: all
 all: build
@@ -13,6 +16,7 @@ all: build
 .PHONY: clean
 clean:
 	rm -rf $(BINARY) dist/
+	go clean -testcache
 
 .PHONY: build
 build:
@@ -27,11 +31,11 @@ image:
 	docker build . -t quay.io/kohlstechnology/prometheus_bigquery_remote_storage_adapter:latest
 
 .PHONY: test
-test: lint-all test-unit
+test: lint-all test-unit test-e2e
 
 .PHONY: test-unit
 test-unit:
-	go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+	go test -tags=unit -race -v -coverprofile=coverage.txt -covermode=atomic ./...
 
 # Make sure go.mod and go.sum are not modified
 .PHONY: test-dirty
@@ -39,6 +43,23 @@ test-dirty: vendor build
 	go mod tidy
 	git diff --exit-code
 	# TODO: also check that there are no untracked files, e.g. extra .go
+
+.PHONY: test-e2e
+test-e2e:
+	GCP_PROJECT_ID=$(GCP_PROJECT_ID) BQ_DATASET_NAME=$(BQ_DATASET_NAME) BQ_TABLE_NAME=$(BQ_TABLE_NAME) go test -tags=e2e -race -v ./...
+
+.PHONY: gcloud-auth
+gcloud-auth:
+	gcloud auth application-default login
+
+.PHONY: bq-setup
+bq-setup:
+	bq --location=US mk --dataset $(GCP_PROJECT_ID):$(BQ_DATASET_NAME)
+	bq mk --table $(GCP_PROJECT_ID):$(BQ_DATASET_NAME).$(BQ_TABLE_NAME) ./bq-schema.json
+
+.PHONY: bq-cleanup
+bq-cleanup:
+	bq rm -r -f --dataset $(GCP_PROJECT_ID):$(BQ_DATASET_NAME)
 
 # Make sure goreleaser is working
 .PHONY: test-release
