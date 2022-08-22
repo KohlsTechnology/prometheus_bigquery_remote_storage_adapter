@@ -1,0 +1,26 @@
+[
+    {
+      "description": "Name of the Prometheus metric",
+      "mode": "NULLABLE",
+      "name": "metricname",
+      "type": "STRING"
+    },
+    {
+      "description": "Prometheus metrics labels stored as JSON string",
+      "mode": "NULLABLE",
+      "name": "tags",
+      "type": "STRING"
+    },
+    {
+      "description": "Prometheus metrics timestamp",
+      "mode": "NULLABLE",
+      "name": "timestamp",
+      "type": "TIMESTAMP"
+    },
+    {
+        "description": "Value of the Prometheus metric",
+        "mode": "NULLABLE",
+        "name": "value",
+        "type": "FLOAT"
+      }
+  ]

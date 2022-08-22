@@ -165,41 +165,27 @@ $ GITHUB_TOKEN=xxx make clean release
 
 ## Testing
 
-### Credentials via Google API json key file
-
-Use the `--googleAPIjsonkeypath` argument to indicate the keyfile path (note: the GCP Project ID will be automatically extracted from the specified file).
-
-
+### Running Unit Tests
 ```
-go test -v -cover ./... -args \
-  --googleAPIjsonkeypath=XXX \
-  --googleAPIdatasetID=XXX \
-  --googleAPItableID=XXX \
+make test-unit
 ```
 
-### Credentials via `GOOGLE_APPLICATION_CREDENTIALS`
-
-Use the `--googleProjectID` argument to indicate the GCP Project ID and let _Google Application Default Credentials_ ([ADC](https://cloud.google.com/docs/authentication/production#automatically)) identify the service account from the `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
-
-```
-GOOGLE_APPLICATION_CREDENTIALS=../../private.key.json \
-go test -v -cover ./... -args \
-  --googleProjectID=XXX \
-  --googleAPIdatasetID=XXX \
-  --googleAPItableID=XXX \
-```
-
-### Credentials via default service account
-
-Identify the service account via Google Application Default Credentials ([ADC](https://cloud.google.com/docs/authentication/production#automatically)).
-
-Use the `--googleProjectID` argument to indicate GCP Project ID and let ADC identify the default service account. This will only work if you're running on Google's infrastructure (GCP VMs, GKE, etc.).
+### Running E2E Tests
+Running the e2e tests requires a real GCP BigQuery instance to connect to.
 
 ```
-go test -v -cover ./... -args \
-  --googleProjectID=XXX \
-  --googleAPIdatasetID=XXX \
-  --googleAPItableID=XXX \
+make gcloud-auth
+make bq-setup
+make test-e2e
+make bq-cleanup
+make clean
+```
+
+To override the GCP project used for testing set the `GCP_PROJECT_ID` variable.
+```
+GCP_PROJECT_ID=my-awesome-project make bq-setup
+GCP_PROJECT_ID=my-awesome-project make test-e2e
+GCP_PROJECT_ID=my-awesome-project make bq-cleanup
 ```
 
 ## Prometheus Metrics Offered
