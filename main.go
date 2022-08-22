@@ -17,7 +17,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -251,7 +251,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) {
 		level.Debug(logger).Log("msg", "Request", "method", r.Method, "path", r.URL.Path) //nolint:errcheck
 
 		begin := time.Now()
-		compressed, err := ioutil.ReadAll(r.Body)
+		compressed, err := io.ReadAll(r.Body)
 		if err != nil {
 			level.Error(logger).Log("msg", "Read error", "err", err.Error()) //nolint:errcheck
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -294,7 +294,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) {
 		level.Debug(logger).Log("msg", "Request", "method", r.Method, "path", r.URL.Path) //nolint:errcheck
 
 		begin := time.Now()
-		compressed, err := ioutil.ReadAll(r.Body)
+		compressed, err := io.ReadAll(r.Body)
 		if err != nil {
 			level.Error(logger).Log("msg", "Read error", "err", err.Error()) //nolint:errcheck
 			http.Error(w, err.Error(), http.StatusInternalServerError)

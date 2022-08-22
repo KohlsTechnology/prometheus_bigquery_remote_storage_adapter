@@ -17,7 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math"
 	"os"
 	"sort"
@@ -60,7 +60,7 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleProjectID, googleA
 			os.Exit(1)
 		}
 
-		byteValue, _ := ioutil.ReadAll(jsonFile)
+		byteValue, _ := io.ReadAll(jsonFile)
 
 		var result map[string]interface{}
 		err = json.Unmarshal([]byte(byteValue), &result)
