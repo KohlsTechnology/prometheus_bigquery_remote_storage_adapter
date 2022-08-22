@@ -15,6 +15,12 @@ jobs:
         go-version: [1.19.2, 1.18.7]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      BQ_DATASET_NAME : github_actions_${{ github.run_id }}_${{ github.run_attempt }}
+    # The permissions block is required for GCP auth. Adds "id-token" with the intended permissions.
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     steps:
     - name: Install Go
       uses: actions/setup-go@v3
@@ -39,6 +45,23 @@ jobs:
         fail_ci_if_error: true
         files: ./coverage.txt
         verbose: true
+    # actions/checkout MUST come before auth
+    - name: Authenticate to Google Cloud
+      id: 'auth'
+      uses: 'google-github-actions/auth@v0'
+      with:
+        workload_identity_provider: 'projects/821427311413/locations/global/workloadIdentityPools/prombq-adaptor/providers/github'
+        service_account: 'prombq-adaptor@kohlsdev-prombq-adaptor.iam.gserviceaccount.com'
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v0'
+    - name: Test E2E
+      run: |
+        make bq-setup
+        make test-e2e
+    - name: Clean Up E2E BigQuery
+      if: always()
+      run: |
+        make bq-cleanup
     - name: Install GoReleaser
       uses: goreleaser/goreleaser-action@v3
       with:
