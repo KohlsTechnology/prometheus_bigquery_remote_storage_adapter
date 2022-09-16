@@ -26,7 +26,7 @@ import (
 
 // TestGetVersion calls version.Get checking for a valid version string.
 func TestGetVersion(t *testing.T) {
-	want := fmt.Sprintf("prometheus_bigquery_remote_storage_adapter, version v0.4.7 (branch: , revision: ), build date: , go version: %v", runtime.Version())
+	want := fmt.Sprintf("prometheus_bigquery_remote_storage_adapter, version v0.4.8 (branch: , revision: ), build date: , go version: %v", runtime.Version())
 	msg := Get()
 	if want != msg {
 		t.Fatalf("wanted %q, but got %q", want, msg)
