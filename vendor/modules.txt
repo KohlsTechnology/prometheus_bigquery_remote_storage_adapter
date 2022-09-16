@@ -9,7 +9,7 @@ cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/uid
 cloud.google.com/go/internal/version
-# cloud.google.com/go/bigquery v1.39.0
+# cloud.google.com/go/bigquery v1.40.0
 ## explicit; go 1.17
 cloud.google.com/go/bigquery
 cloud.google.com/go/bigquery/internal
@@ -212,7 +212,7 @@ google.golang.org/appengine/internal/socket
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/socket
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20220819153447-c7cd466b0e09
+# google.golang.org/genproto v0.0.0-20220902135211-223410557253
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
