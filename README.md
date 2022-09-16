@@ -10,18 +10,19 @@ https://github.com/prometheus/prometheus/tree/master/documentation/examples/remo
 
 Billing MUST be enabled on the GCP project with the destination BigQuery tables. This adapter uses the "streaming inserts" API. More information is available here: https://cloud.google.com/bigquery/streaming-data-into-bigquery#before_you_begin
 
-The table schema in BigQuery should be the following format:
+The table schema for BigQuery can be found in file [bq-schema.json](https://raw.githubusercontent.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter/master/bq-schema.json). You can create a BigQuery dataset and table using the following commands.
+```
+BQ_DATASET_NAME=prometheus
+BQ_TABLE_NAME=metrics
+GCP_PROJECT_ID=my-gcp-project-id
+bq --location=US mk --dataset $GCP_PROJECT_ID:$BQ_DATASET_NAME
+bq mk --table \
+  --schema ./bq-schema.json \
+  --time_partitioning_field timestamp \
+  --time_partitioning_type DAY $GCP_PROJECT_ID:$BQ_DATASET_NAME.$BQ_TABLE_NAME
+```
 
-| Field name | Type | Mode |
-| --- | --- | --- |
-| metricname | STRING | NULLABLE |
-| tags | STRING | NULLABLE |
-| value | FLOAT | NULLABLE |
-| timestamp | TIMESTAMP | NULLABLE |
-
-It is recommended that the BigQuery table is partitioned on the timestamp column for performance.
-
-The tags field is a json string and can be easily extracted. Here is an example query:
+The `tags` field is a JSON string and can be easily extracted. Here is an example query:
 
 ```
 SELECT metricname, tags, JSON_EXTRACT(tags, '$.some_label')

@@ -55,7 +55,7 @@ gcloud-auth:
 .PHONY: bq-setup
 bq-setup:
 	bq --location=US mk --dataset $(GCP_PROJECT_ID):$(BQ_DATASET_NAME)
-	bq mk --table $(GCP_PROJECT_ID):$(BQ_DATASET_NAME).$(BQ_TABLE_NAME) ./bq-schema.json
+	bq mk --table --schema ./bq-schema.json --time_partitioning_field timestamp --time_partitioning_type DAY $(GCP_PROJECT_ID):$(BQ_DATASET_NAME).$(BQ_TABLE_NAME)
 
 .PHONY: bq-cleanup
 bq-cleanup:
