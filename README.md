@@ -4,7 +4,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter)](https://goreportcard.com/report/github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter)
 [![Join the chat at https://gitter.im/KohlsTechnology/prometheus_bigquery_remote_storage_adapter](https://badges.gitter.im/KohlsTechnology/prometheus_bigquery_remote_storage_adapter.svg)](https://gitter.im/KohlsTechnology/prometheus_bigquery_remote_storage_adapter?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-This is a write adapter that receives samples via Prometheus's remote write protocol and stores them in Google BigQuery. This adapter is based off code found in the official prometheus repo:
+This is a read/write adapter that receives samples via Prometheus's remote write protocol and stores them in Google BigQuery. This adapter is based off code found in the official prometheus repo:
 
 https://github.com/prometheus/prometheus/tree/master/documentation/examples/remote_storage/remote_storage_adapter
 
@@ -59,6 +59,63 @@ To show all flags:
 ```
 ./bigquery_remote_storage_adapter -h
 ```
+
+## Deploying To Kubernetes
+
+The recommended installation method is to use the [Prometheus operator](https://github.com/prometheus-operator/prometheus-operator).
+
+Example of deploying the remote read/write adapter using the Prometheus operator:
+```
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus
+  labels:
+    prometheus: prometheus
+spec:
+  replicas: 2
+  serviceAccountName: prometheus
+  serviceMonitorSelector:
+    matchLabels:
+      team: frontend
+  containers:
+    - name: "prometheus-storage-bigquery"
+      image: "quay.io/kohlstechnology/prometheus_bigquery_remote_storage_adapter:v0.4.8"
+      env:
+        - name: "PROMBQ_GCP_PROJECT_ID"
+          value: "${PROJECT_ID}"
+        - name: PROMBQ_DATASET
+          value: "${BIGQUERY_DATASET}"
+        - name: PROMBQ_TABLE
+          value: "${BIGQUERY_TABLE}"
+        - name: PROMBQ_TIMEOUT
+          value: "2m"
+      imagePullPolicy: IfNotPresent
+      resources:
+        limits:
+          cpu: "5"
+          memory: "500Mi"
+        requests:
+          cpu: "5"
+          memory: "500Mi"
+  remoteWrite:
+    - url: http://localhost:9201/write
+      remoteTimeout: 2m
+      queueConfig:
+        capacity: 500
+        maxShards: 200
+        minShards: 1
+        maxSamplesPerSend: 100
+        batchSendDeadline: 5s
+        minBackoff: 30ms
+        maxBackoff: 100ms
+  remoteRead:
+    - url: http://localhost:9201/read
+      remoteTimeout: 1m
+```
+
+Here is an [external tutorial](https://cloud.google.com/community/tutorials/writing-prometheus-metrics-bigquery) that walks through setup, installation, and configuration using the Prometheus operator on GKE.
 
 ## Configuration
 
