@@ -25,7 +25,7 @@ jobs:
     - name: Compile
       run: make build
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v3.3.0
+      uses: golangci/golangci-lint-action@v3.3.1
       with:
         version: v1.48.0
         skip-go-installation: true
