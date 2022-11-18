@@ -1,5 +1,5 @@
-# cloud.google.com/go v0.104.0
-## explicit; go 1.17
+# cloud.google.com/go v0.105.0
+## explicit; go 1.19
 cloud.google.com/go/civil
 cloud.google.com/go/internal
 cloud.google.com/go/internal/detect
@@ -12,11 +12,14 @@ cloud.google.com/go/internal/version
 ## explicit; go 1.19
 cloud.google.com/go/bigquery
 cloud.google.com/go/bigquery/internal
-# cloud.google.com/go/compute v1.10.0
-## explicit; go 1.17
+# cloud.google.com/go/compute v1.12.1
+## explicit; go 1.19
+cloud.google.com/go/compute/internal
+# cloud.google.com/go/compute/metadata v0.2.1
+## explicit; go 1.19
 cloud.google.com/go/compute/metadata
-# cloud.google.com/go/iam v0.5.0
-## explicit; go 1.17
+# cloud.google.com/go/iam v0.6.0
+## explicit; go 1.19
 cloud.google.com/go/iam
 # github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 ## explicit
@@ -81,7 +84,7 @@ github.com/google/uuid
 ## explicit; go 1.18
 github.com/googleapis/enterprise-certificate-proxy/client
 github.com/googleapis/enterprise-certificate-proxy/client/util
-# github.com/googleapis/gax-go/v2 v2.6.0
+# github.com/googleapis/gax-go/v2 v2.7.0
 ## explicit; go 1.19
 github.com/googleapis/gax-go/v2
 github.com/googleapis/gax-go/v2/apierror
@@ -126,7 +129,7 @@ github.com/prometheus/prometheus/prompb
 # github.com/stretchr/testify v1.8.1
 ## explicit; go 1.13
 github.com/stretchr/testify/assert
-# go.opencensus.io v0.23.0
+# go.opencensus.io v0.24.0
 ## explicit; go 1.13
 go.opencensus.io
 go.opencensus.io/internal
@@ -145,7 +148,7 @@ go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/propagation
 go.opencensus.io/trace/tracestate
-# golang.org/x/net v0.0.0-20221012135044-0b7e1fb9d458
+# golang.org/x/net v0.0.0-20221014081412-f15817d10f9b
 ## explicit; go 1.17
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -155,7 +158,7 @@ golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/timeseries
 golang.org/x/net/trace
-# golang.org/x/oauth2 v0.0.0-20221006150949-b44042a4b9c1
+# golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783
 ## explicit; go 1.17
 golang.org/x/oauth2
 golang.org/x/oauth2/authhandler
@@ -179,7 +182,7 @@ golang.org/x/text/unicode/norm
 ## explicit; go 1.17
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/api v0.101.0
+# google.golang.org/api v0.103.0
 ## explicit; go 1.19
 google.golang.org/api/bigquery/v2
 google.golang.org/api/googleapi
@@ -211,7 +214,7 @@ google.golang.org/appengine/internal/socket
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/socket
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20221018160656-63c7b68cfc55
+# google.golang.org/genproto v0.0.0-20221027153422-115e99e71e1c
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
