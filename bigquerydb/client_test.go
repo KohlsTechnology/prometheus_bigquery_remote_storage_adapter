@@ -27,6 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var bigQueryClientTimeout = time.Second * 60
 var logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
 
 var googleAPIdatasetID = os.Getenv("BQ_DATASET_NAME")
@@ -86,9 +87,7 @@ func TestNaN(t *testing.T) {
 		},
 	}
 
-	thirtysecondtimeout, _ := time.ParseDuration("30s")
-
-	bqclient := NewClient(logger, "", googleProjectID, googleAPIdatasetID, googleAPItableID, thirtysecondtimeout)
+	bqclient := NewClient(logger, "", googleProjectID, googleAPIdatasetID, googleAPItableID, bigQueryClientTimeout)
 
 	if err := bqclient.Write(timeseriesGood); err != nil {
 		fmt.Println("Error sending samples: ", err)
@@ -163,9 +162,7 @@ func TestWriteRead(t *testing.T) {
 		},
 	}
 
-	thirtysecondtimeout, _ := time.ParseDuration("30s")
-
-	bqclient := NewClient(logger, "", googleProjectID, googleAPIdatasetID, googleAPItableID, thirtysecondtimeout)
+	bqclient := NewClient(logger, "", googleProjectID, googleAPIdatasetID, googleAPItableID, bigQueryClientTimeout)
 
 	if err := bqclient.Write(timeseries); err != nil {
 		fmt.Println("Error sending samples: ", err)
