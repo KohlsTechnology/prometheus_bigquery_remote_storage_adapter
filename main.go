@@ -29,8 +29,8 @@ import (
 
 	"github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter/bigquerydb"
 	"github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter/pkg/version"
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/snappy"
 	"github.com/pkg/errors"

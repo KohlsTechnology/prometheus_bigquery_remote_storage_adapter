@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	"github.com/prometheus/prometheus/prompb"
 	"github.com/stretchr/testify/assert"
 )
