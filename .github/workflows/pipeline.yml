@@ -63,7 +63,7 @@ jobs:
       run: |
         make bq-cleanup
     - name: Install GoReleaser
-      uses: goreleaser/goreleaser-action@v3
+      uses: goreleaser/goreleaser-action@v4
       with:
         install-only: true
         version: v1.7.0
@@ -102,7 +102,7 @@ jobs:
           push: true
           tags: ${{ steps.prep.outputs.tags }}
       - name: Install GoReleaser
-        uses: goreleaser/goreleaser-action@v3
+        uses: goreleaser/goreleaser-action@v4
         with:
           install-only: true
           version: v1.7.0
