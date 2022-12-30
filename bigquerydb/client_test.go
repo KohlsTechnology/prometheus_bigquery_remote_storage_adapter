@@ -16,7 +16,6 @@ limitations under the License.
 package bigquerydb
 
 import (
-	"fmt"
 	"math"
 	"os"
 	"testing"
@@ -90,10 +89,10 @@ func TestNaN(t *testing.T) {
 	bqclient := NewClient(logger, "", googleProjectID, googleAPIdatasetID, googleAPItableID, bigQueryClientTimeout)
 
 	if err := bqclient.Write(timeseriesGood); err != nil {
-		fmt.Println("Error sending samples: ", err)
+		t.Fatal("error sending samples", err)
 	}
 	if err := bqclient.Write(timeseriesNaN); err != nil {
-		fmt.Println("Error sending samples: ", err)
+		t.Fatal("error sending samples", err)
 	}
 
 	request := prompb.ReadRequest{
@@ -165,7 +164,7 @@ func TestWriteRead(t *testing.T) {
 	bqclient := NewClient(logger, "", googleProjectID, googleAPIdatasetID, googleAPItableID, bigQueryClientTimeout)
 
 	if err := bqclient.Write(timeseries); err != nil {
-		fmt.Println("Error sending samples: ", err)
+		t.Fatal("error sending samples", err)
 	}
 
 	request := prompb.ReadRequest{
