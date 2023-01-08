@@ -295,7 +295,7 @@ func (c *BigqueryClient) buildCommand(q *prompb.Query) (string, error) {
 		case prompb.LabelMatcher_EQ:
 			matchers = append(matchers, fmt.Sprintf(`IFNULL(JSON_EXTRACT(tags, '$.%s'), '""') = '"%s"'`, m.Name, m.Value))
 		case prompb.LabelMatcher_NEQ:
-			matchers = append(matchers, fmt.Sprintf(`IFNULL(JSON_EXTRACT(tags, '$.%s'), '""') = '"%s"'`, m.Name, m.Value))
+			matchers = append(matchers, fmt.Sprintf(`IFNULL(JSON_EXTRACT(tags, '$.%s'), '""') != '"%s"'`, m.Name, m.Value))
 		case prompb.LabelMatcher_RE:
 			matchers = append(matchers, fmt.Sprintf(`REGEXP_CONTAINS(IFNULL(JSON_EXTRACT(tags, '$.%s'), '""'), r'"%s"')`, m.Name, m.Value))
 		case prompb.LabelMatcher_NRE:
