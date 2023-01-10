@@ -16,7 +16,6 @@ limitations under the License.
 package bigquerydb
 
 import (
-	"fmt"
 	"math"
 	"os"
 	"testing"
@@ -34,24 +33,20 @@ var googleAPIdatasetID = os.Getenv("BQ_DATASET_NAME")
 var googleAPItableID = os.Getenv("BQ_TABLE_NAME")
 var googleProjectID = os.Getenv("GCP_PROJECT_ID")
 
-func TestNaN(t *testing.T) {
+func TestLabelMatchers(t *testing.T) {
 
 	nowUnix := time.Now().Unix() * 1000
 
-	timeseriesGood := []*prompb.TimeSeries{
-		{
+	timeseriesData := map[string][]*prompb.TimeSeries{
+		"first": {&prompb.TimeSeries{
 			Labels: []*prompb.Label{
 				{
 					Name:  "__name__",
-					Value: "test_metric",
+					Value: "first_metric",
 				},
 				{
 					Name:  "label",
-					Value: "goodvalue",
-				},
-				{
-					Name:  "test",
-					Value: "TestNaN",
+					Value: "first",
 				},
 			},
 			Samples: []prompb.Sample{
@@ -60,22 +55,34 @@ func TestNaN(t *testing.T) {
 					Value:     1,
 				},
 			},
-		},
-	}
-	timeseriesNaN := []*prompb.TimeSeries{
-		{
+		}},
+		"second": {&prompb.TimeSeries{
 			Labels: []*prompb.Label{
 				{
 					Name:  "__name__",
-					Value: "test_metric",
+					Value: "second_metric",
+				},
+				{
+					Name:  "label",
+					Value: "second",
+				},
+			},
+			Samples: []prompb.Sample{
+				{
+					Timestamp: nowUnix,
+					Value:     1,
+				},
+			},
+		}},
+		"nan": {&prompb.TimeSeries{
+			Labels: []*prompb.Label{
+				{
+					Name:  "__name__",
+					Value: "nan_metric",
 				},
 				{
 					Name:  "label",
 					Value: "NaN",
-				},
-				{
-					Name:  "test",
-					Value: "TestNaN",
 				},
 			},
 			Samples: []prompb.Sample{
@@ -84,112 +91,58 @@ func TestNaN(t *testing.T) {
 					Value:     math.NaN(),
 				},
 			},
-		},
+		}},
+		"emptyResult": {},
 	}
 
 	bqclient := NewClient(logger, "", googleProjectID, googleAPIdatasetID, googleAPItableID, bigQueryClientTimeout)
 
-	if err := bqclient.Write(timeseriesGood); err != nil {
-		fmt.Println("Error sending samples: ", err)
-	}
-	if err := bqclient.Write(timeseriesNaN); err != nil {
-		fmt.Println("Error sending samples: ", err)
+	for _, timeseries := range timeseriesData {
+		err := bqclient.Write(timeseries)
+		if err != nil {
+			t.Fatal("error sending samples", err)
+		}
 	}
 
-	request := prompb.ReadRequest{
-		Queries: []*prompb.Query{
-			{
-				StartTimestampMs: nowUnix,
-				EndTimestampMs:   nowUnix + 10000,
-				Matchers: []*prompb.LabelMatcher{
+	testCases := map[string]struct {
+		matchName      string
+		matchValue     string
+		matchType      prompb.LabelMatcher_Type
+		expectedResult string
+	}{
+		"metric_name_equals":          {matchName: "__name__", matchValue: "first_metric", matchType: prompb.LabelMatcher_EQ, expectedResult: "first"},
+		"metric_name_not_equals":      {matchName: "__name__", matchValue: "first_metric", matchType: prompb.LabelMatcher_NEQ, expectedResult: "second"},
+		"metric_name_regex_match":     {matchName: "__name__", matchValue: "fi.*", matchType: prompb.LabelMatcher_RE, expectedResult: "first"},
+		"metric_name_regex_not_equal": {matchName: "__name__", matchValue: "fi.*", matchType: prompb.LabelMatcher_NRE, expectedResult: "second"},
+		"label_equals":                {matchName: "label", matchValue: "first", matchType: prompb.LabelMatcher_EQ, expectedResult: "first"},
+		"label_not_equals":            {matchName: "label", matchValue: "first", matchType: prompb.LabelMatcher_NEQ, expectedResult: "second"},
+		"label_regex_match":           {matchName: "label", matchValue: "fi.*", matchType: prompb.LabelMatcher_RE, expectedResult: "first"},
+		"label_regex_not_equal":       {matchName: "label", matchValue: "fi.*", matchType: prompb.LabelMatcher_NRE, expectedResult: "second"},
+		"nan_timeseries_sample_value": {matchName: "label", matchValue: "NaN", matchType: prompb.LabelMatcher_EQ, expectedResult: "emptyResult"},
+	}
+
+	for name, testCase := range testCases {
+		t.Run(name, func(t *testing.T) {
+			request := prompb.ReadRequest{
+				Queries: []*prompb.Query{
 					{
-						Type:  prompb.LabelMatcher_EQ,
-						Name:  "test",
-						Value: "TestNaN",
+						StartTimestampMs: nowUnix,
+						EndTimestampMs:   nowUnix + 10000,
+						Matchers: []*prompb.LabelMatcher{
+							{
+								Type:  testCase.matchType,
+								Name:  testCase.matchName,
+								Value: testCase.matchValue,
+							},
+						},
 					},
 				},
-			},
-		},
+			}
+			result, err := bqclient.Read(&request)
+
+			assert.Nil(t, err, "failed to process query")
+			assert.Len(t, result.Results, 1)
+			assert.Equal(t, timeseriesData[testCase.expectedResult], result.Results[0].Timeseries)
+		})
 	}
-
-	result, err := bqclient.Read(&request)
-
-	assert.Nil(t, err, "failed to process query")
-	assert.Len(t, result.Results, 1)
-	assert.Len(t, result.Results[0].Timeseries, 1)
-	assert.Len(t, result.Results[0].Timeseries[0].Samples, 1)
-	assert.Equal(t, timeseriesGood, result.Results[0].Timeseries)
-
-}
-
-func TestWriteRead(t *testing.T) {
-	nowUnix := time.Now().Unix() * 1000
-
-	timeseries := []*prompb.TimeSeries{
-		{
-			Labels: []*prompb.Label{
-				{
-					Name:  "__name__",
-					Value: "test_metric",
-				},
-				{
-					Name:  "label_1",
-					Value: "value_1",
-				},
-				{
-					Name:  "label_2",
-					Value: "value_2",
-				},
-				{
-					Name:  "test",
-					Value: "TestWriteRead",
-				},
-			},
-			Samples: []prompb.Sample{
-				{
-					Timestamp: nowUnix,
-					Value:     1,
-				},
-				{
-					Timestamp: nowUnix + 2000,
-					Value:     2,
-				},
-				{
-					Timestamp: nowUnix + 3000,
-					Value:     3,
-				},
-			},
-		},
-	}
-
-	bqclient := NewClient(logger, "", googleProjectID, googleAPIdatasetID, googleAPItableID, bigQueryClientTimeout)
-
-	if err := bqclient.Write(timeseries); err != nil {
-		fmt.Println("Error sending samples: ", err)
-	}
-
-	request := prompb.ReadRequest{
-		Queries: []*prompb.Query{
-			{
-				StartTimestampMs: nowUnix,
-				EndTimestampMs:   nowUnix + 10000,
-				Matchers: []*prompb.LabelMatcher{
-					{
-						Type:  prompb.LabelMatcher_EQ,
-						Name:  "test",
-						Value: "TestWriteRead",
-					},
-				},
-			},
-		},
-	}
-
-	result, err := bqclient.Read(&request)
-
-	assert.Nil(t, err, "failed to process query")
-	assert.Len(t, result.Results, 1)
-	assert.Len(t, result.Results[0].Timeseries, 1)
-	assert.Len(t, result.Results[0].Timeseries[0].Samples, 3)
-	assert.Equal(t, timeseries, result.Results[0].Timeseries)
-
 }

@@ -35,7 +35,7 @@ test: lint-all test-unit test-e2e
 
 .PHONY: test-unit
 test-unit:
-	go test -tags=unit -race -v -coverprofile=coverage.txt -covermode=atomic ./...
+	go test -tags=unit -race -v -coverprofile=coverage.unit -covermode=atomic ./...
 
 # Make sure go.mod and go.sum are not modified
 .PHONY: test-dirty
@@ -46,7 +46,7 @@ test-dirty: vendor build
 
 .PHONY: test-e2e
 test-e2e:
-	GCP_PROJECT_ID=$(GCP_PROJECT_ID) BQ_DATASET_NAME=$(BQ_DATASET_NAME) BQ_TABLE_NAME=$(BQ_TABLE_NAME) go test -tags=e2e -race -v ./...
+	GCP_PROJECT_ID=$(GCP_PROJECT_ID) BQ_DATASET_NAME=$(BQ_DATASET_NAME) BQ_TABLE_NAME=$(BQ_TABLE_NAME) go test -tags=e2e -race -v -coverprofile=coverage.e2e -covermode=atomic ./...
 
 .PHONY: gcloud-auth
 gcloud-auth:

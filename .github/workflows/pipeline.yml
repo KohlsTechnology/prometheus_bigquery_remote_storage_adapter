@@ -34,17 +34,10 @@ jobs:
       uses: golangci/golangci-lint-action@v3.3.1
       with:
         version: v1.48.0
-        skip-go-installation: true
         skip-pkg-cache: true
         skip-build-cache: true
     - name: Test
       run: make test-unit
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3.1.1
-      with:
-        fail_ci_if_error: true
-        files: ./coverage.txt
-        verbose: true
     # actions/checkout MUST come before auth
     - name: Authenticate to Google Cloud
       id: 'auth'
@@ -58,6 +51,12 @@ jobs:
       run: |
         make bq-setup
         make test-e2e
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3.1.1
+      with:
+        fail_ci_if_error: true
+        files: ./coverage.unit,./coverage.e2e
+        verbose: true
     - name: Clean Up E2E BigQuery
       if: always()
       run: |
