@@ -81,7 +81,7 @@ spec:
       team: frontend
   containers:
     - name: "prometheus-storage-bigquery"
-      image: "quay.io/kohlstechnology/prometheus_bigquery_remote_storage_adapter:v0.4.9"
+      image: "quay.io/kohlstechnology/prometheus_bigquery_remote_storage_adapter:v0.5.0"
       env:
         - name: "PROMBQ_GCP_PROJECT_ID"
           value: "${PROJECT_ID}"
@@ -256,5 +256,5 @@ GCP_PROJECT_ID=my-awesome-project make bq-cleanup
 | storage_bigquery_sent_batch_duration_seconds | Histogram | Duration of sample batch send calls to the remote storage that share the same description. |
 | storage_bigquery_write_errors_total | Counter | Total number of write errors to BigQuery. |
 | storage_bigquery_read_errors_total | Counter | Total number of read errors from BigQuery |
-| storage_bigquery_write_api_seconds | Histogram | Duration of the write api processing that share the same description. | 
+| storage_bigquery_write_api_seconds | Histogram | Duration of the write api processing that share the same description. |
 | storage_bigquery_read_api_seconds | Histogram | Duration of the read api processing that share the same description. |
