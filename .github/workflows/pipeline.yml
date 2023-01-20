@@ -38,6 +38,13 @@ jobs:
         skip-build-cache: true
     - name: Test
       run: make test-unit
+    - name: Upload unit test coverage to Codecov
+      uses: codecov/codecov-action@v3.1.1
+      with:
+        fail_ci_if_error: true
+        files: ./coverage.unit
+        flags: unit
+        verbose: true
     # actions/checkout MUST come before auth
     - name: Authenticate to Google Cloud
       id: 'auth'
@@ -51,11 +58,12 @@ jobs:
       run: |
         make bq-setup
         make test-e2e
-    - name: Upload coverage to Codecov
+    - name: Upload e2e test coverage to Codecov
       uses: codecov/codecov-action@v3.1.1
       with:
         fail_ci_if_error: true
-        files: ./coverage.unit,./coverage.e2e
+        files: ./coverage.e2e
+        flags: e2e
         verbose: true
     - name: Clean Up E2E BigQuery
       if: always()
