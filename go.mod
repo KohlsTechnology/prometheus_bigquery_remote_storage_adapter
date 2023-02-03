@@ -12,7 +12,7 @@ require (
 	github.com/prometheus/common v0.39.0
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/stretchr/testify v1.8.1
-	google.golang.org/api v0.107.0
+	google.golang.org/api v0.109.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 )
 
