@@ -157,7 +157,8 @@ func parseFlags() *config {
 		Default("false").BoolVar(&cfg.printVersion)
 	a.Flag("googleAPIjsonkeypath", "Path to json keyfile for GCP service account. JSON keyfile also contains project_id").
 		Envar("PROMBQ_GCP_JSON").ExistingFileVar(&cfg.googleAPIjsonkeypath)
-	googleProjectIDFlagCause := a.Flag("googleProjectID", "The GCP Project ID is mandatory when googleAPIjsonkeypath is not provided").Envar("PROMBQ_GCP_PROJECT_ID")
+	googleProjectIDFlagCause := a.Flag("googleProjectID", "The GCP Project ID is mandatory when googleAPIjsonkeypath is not provided").
+		Envar("PROMBQ_GCP_PROJECT_ID")
 	googleProjectIDFlagCause.StringVar(&cfg.googleProjectID)
 	a.Flag("googleAPIdatasetID", "Dataset name as shown in GCP.").
 		Envar("PROMBQ_DATASET").Required().StringVar(&cfg.googleAPIdatasetID)

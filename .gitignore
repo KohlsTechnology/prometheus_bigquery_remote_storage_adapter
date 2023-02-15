@@ -3,6 +3,7 @@ coverage.e2e
 dist/
 prometheus_bigquery_remote_storage_adapter
 .idea
+*.iml
 *.swp
 .vscode
 gha-creds-*.json
