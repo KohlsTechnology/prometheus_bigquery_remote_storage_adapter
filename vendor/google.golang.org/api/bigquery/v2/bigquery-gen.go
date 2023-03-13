@@ -1353,7 +1353,9 @@ type Binding struct {
 	// (https://cloud.google.com/kubernetes-engine/docs/how-to/kubernetes-service-accounts).
 	// For example, `my-project.svc.id.goog[my-namespace/my-kubernetes-sa]`.
 	// * `group:{emailid}`: An email address that represents a Google group.
-	// For example, `admins@example.com`. *
+	// For example, `admins@example.com`. * `domain:{domain}`: The G Suite
+	// domain (primary) that represents all the users of that domain. For
+	// example, `google.com` or `example.com`. *
 	// `deleted:user:{emailid}?uid={uniqueid}`: An email address (plus
 	// unique identifier) representing a user that has been recently
 	// deleted. For example, `alice@example.com?uid=123456789012345678901`.
@@ -1370,9 +1372,7 @@ type Binding struct {
 	// that has been recently deleted. For example,
 	// `admins@example.com?uid=123456789012345678901`. If the group is
 	// recovered, this value reverts to `group:{emailid}` and the recovered
-	// group retains the role in the binding. * `domain:{domain}`: The G
-	// Suite domain (primary) that represents all the users of that domain.
-	// For example, `google.com` or `example.com`.
+	// group retains the role in the binding.
 	Members []string `json:"members,omitempty"`
 
 	// Role: Role that is assigned to the list of `members`, or principals.
@@ -2125,6 +2125,10 @@ type Dataset struct {
 	// table, that value takes precedence over the default partition
 	// expiration time indicated by this property.
 	DefaultPartitionExpirationMs int64 `json:"defaultPartitionExpirationMs,omitempty,string"`
+
+	// DefaultRoundingMode: [Output-only] The default rounding mode of the
+	// dataset.
+	DefaultRoundingMode string `json:"defaultRoundingMode,omitempty"`
 
 	// DefaultTableExpirationMs: [Optional] The default lifetime of all
 	// tables in the dataset, in milliseconds. The minimum value is 3600000
@@ -7912,6 +7916,10 @@ type Table struct {
 	// DefaultCollation: [Output-only] The default collation of the table.
 	DefaultCollation string `json:"defaultCollation,omitempty"`
 
+	// DefaultRoundingMode: [Output-only] The default rounding mode of the
+	// table.
+	DefaultRoundingMode string `json:"defaultRoundingMode,omitempty"`
+
 	// Description: [Optional] A user-friendly description of this table.
 	Description string `json:"description,omitempty"`
 
@@ -8395,6 +8403,10 @@ type TableFieldSchema struct {
 	// ≤ precision ≤ 38. If scale is specified but not precision, then
 	// it is invalid.
 	Precision int64 `json:"precision,omitempty,string"`
+
+	// RoundingMode: Optional. Rounding Mode specification of the field. It
+	// only can be set on NUMERIC or BIGNUMERIC type fields.
+	RoundingMode string `json:"roundingMode,omitempty"`
 
 	// Scale: [Optional] See documentation for precision.
 	Scale int64 `json:"scale,omitempty,string"`
