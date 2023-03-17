@@ -26,8 +26,8 @@ cloud.google.com/go/iam/apiv1/iampb
 ## explicit
 github.com/alecthomas/template
 github.com/alecthomas/template/parse
-# github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
-## explicit
+# github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137
+## explicit; go 1.15
 github.com/alecthomas/units
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
@@ -111,8 +111,8 @@ github.com/prometheus/client_golang/prometheus/promhttp
 # github.com/prometheus/client_model v0.3.0
 ## explicit; go 1.9
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.39.0
-## explicit; go 1.17
+# github.com/prometheus/common v0.42.0
+## explicit; go 1.18
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
@@ -150,14 +150,13 @@ go.opencensus.io/trace/tracestate
 # golang.org/x/net v0.7.0
 ## explicit; go 1.17
 golang.org/x/net/context
-golang.org/x/net/context/ctxhttp
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/timeseries
 golang.org/x/net/trace
-# golang.org/x/oauth2 v0.3.0
+# golang.org/x/oauth2 v0.5.0
 ## explicit; go 1.17
 golang.org/x/oauth2
 golang.org/x/oauth2/authhandler
