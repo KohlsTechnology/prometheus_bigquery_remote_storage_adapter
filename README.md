@@ -24,7 +24,7 @@ bq mk --table \
 
 The `tags` field is a JSON string and can be easily extracted. Here is an example query:
 
-```
+```sql
 SELECT metricname, tags, JSON_EXTRACT(tags, '$.some_label')
   AS some_label, value, timestamp
   FROM `your_gcp_project.prometheus.metrics_stream`
@@ -36,7 +36,7 @@ Consider enabling partition expiration on the destination table based on your da
 
 ## Running directly with googleAPIjsonkeypath
 
-```
+```shell
 ./bigquery_remote_storage_adapter \
   --googleAPIjsonkeypath=/secret/gcp_service_account.json \
   --googleAPIdatasetID=prometheus \
@@ -47,7 +47,7 @@ Consider enabling partition expiration on the destination table based on your da
 
 Reference: Google Application Default Credentials ([ADC](https://cloud.google.com/docs/authentication/production#automatically))
 
-```
+```shell
 GOOGLE_APPLICATION_CREDENTIALS=../../private.key.json ./bigquery_remote_storage_adapter \
   --googleProjectID=<GCP Project ID> \
   --googleAPIdatasetID=prometheus \
@@ -56,7 +56,7 @@ GOOGLE_APPLICATION_CREDENTIALS=../../private.key.json ./bigquery_remote_storage_
 
 To show all flags:
 
-```
+```shell
 ./bigquery_remote_storage_adapter -h
 ```
 
@@ -65,7 +65,7 @@ To show all flags:
 The recommended installation method is to use the [Prometheus operator](https://github.com/prometheus-operator/prometheus-operator).
 
 Example of deploying the remote read/write adapter using the Prometheus operator:
-```
+```yaml
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: Prometheus
@@ -124,9 +124,9 @@ You can configure this storage adapter either through command line options or en
 | Command Line Flag | Environment Variable | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `--googleAPIdatasetID` | `PROMBQ_DATASET` | Yes | | Dataset name as shown in GCP |
-| `--googleAPItableID` | `PROMBQ_TABLE` | Yes | | Table name as showon in GCP |
-| `--googleAPIjsonkeypath` | `PROMBQ_GCP_JSON` | No | | Path to json keyfile for GCP service account. JSON keyfile also contains project_id. |
-| `--googleProjectID` | `PROMBQ_GCP_PROJECT_ID` | Yes (when -googleAPIjsonkeypath is missing)| | The GCP project_id |
+| `--googleAPItableID` | `PROMBQ_TABLE` | Yes | | Table name as shown in GCP |
+| `--googleAPIjsonkeypath` | `PROMBQ_GCP_JSON` | Yes\* | | Path to json keyfile for GCP service account. At least one of `--googleAPIjsonkeypath` or `--googleProjectID` must be specified. |
+| `--googleProjectID` | `PROMBQ_GCP_PROJECT_ID` | Yes\* | | The GCP `project_id` to use, overwriting the value from the keyfile if both are used. At least one of `--googleAPIjsonkeypath` or `--googleProjectID` must be specified. |
 | `--send-timeout` | `PROMBQ_TIMEOUT` | No | `30s` | The timeout to use when sending samples to the remote storage |
 | `--web.listen-address` | `PROMBQ_LISTEN` | No | `:9201` | Address to listen on for web endpoints |
 | `--web.telemetry-path` | `PROMBQ_TELEMETRY` | No | `/metrics` | Address to listen on for web endpoints |
@@ -166,7 +166,7 @@ Refer to the Prometheus documentation for [remote_write](https://prometheus.io/d
 Prometheus allows you to tune the write behavior for remote storage. Please refer to their [documentation](https://prometheus.io/docs/practices/remote_write/) for details.
 ### Example `prometheus.yml`
 
-```
+```yaml
 remote_write:
 - url: http://localhost:9201/write
   remote_timeout: 2m
@@ -195,7 +195,7 @@ remote_read:
 
 If you just need a local version to test, then the simplest way is to execute:
 
-```
+```shell
 make build
 ```
 
@@ -203,7 +203,7 @@ make build
 
 In order to build the docker image, simply execute
 
-```
+```shell
 make image
 ```
 
@@ -211,14 +211,14 @@ make image
 
 This project is using [goreleaser](https://goreleaser.com). GitHub release creation is automated using Travis
 CI. New releases are automatically created when new tags are pushed to the repo.
-```
-$ TAG=v0.0.2 make tag
+```shell
+TAG=v0.0.2 make tag
 ```
 
 How to manually create a release without relying on Travis CI.
-```
-$ TAG=v0.0.2 make tag
-$ GITHUB_TOKEN=xxx make clean release
+```shell
+TAG=v0.0.2 make tag
+GITHUB_TOKEN=xxx make clean release
 ```
 
 ## Testing
@@ -231,7 +231,7 @@ make test-unit
 ### Running E2E Tests
 Running the e2e tests requires a real GCP BigQuery instance to connect to.
 
-```
+```shell
 make gcloud-auth
 make bq-setup
 make test-e2e
@@ -240,7 +240,7 @@ make clean
 ```
 
 To override the GCP project used for testing set the `GCP_PROJECT_ID` variable.
-```
+```shell
 GCP_PROJECT_ID=my-awesome-project make bq-setup
 GCP_PROJECT_ID=my-awesome-project make test-e2e
 GCP_PROJECT_ID=my-awesome-project make bq-cleanup
@@ -250,11 +250,11 @@ GCP_PROJECT_ID=my-awesome-project make bq-cleanup
 
 | Metric Name | Metric Type | Short Description |
 | --- | --- | --- |
-| storage_bigquery_received_samples_total | Counter | Total number of received samples. |
-| storage_bigquery_sent_samples_total | Counter | Total number of processed samples sent to remote storage that share the same description. |
-| storage_bigquery_failed_samples_total | Counter | Total number of processed samples which failed on send to remote storage that share the same description. |
-| storage_bigquery_sent_batch_duration_seconds | Histogram | Duration of sample batch send calls to the remote storage that share the same description. |
-| storage_bigquery_write_errors_total | Counter | Total number of write errors to BigQuery. |
-| storage_bigquery_read_errors_total | Counter | Total number of read errors from BigQuery |
-| storage_bigquery_write_api_seconds | Histogram | Duration of the write api processing that share the same description. |
-| storage_bigquery_read_api_seconds | Histogram | Duration of the read api processing that share the same description. |
+| `storage_bigquery_received_samples_total` | Counter | Total number of received samples. |
+| `storage_bigquery_sent_samples_total` | Counter | Total number of processed samples sent to remote storage that share the same description. |
+| `storage_bigquery_failed_samples_total` | Counter | Total number of processed samples which failed on send to remote storage that share the same description. |
+| `storage_bigquery_sent_batch_duration_seconds` | Histogram | Duration of sample batch send calls to the remote storage that share the same description. |
+| `storage_bigquery_write_errors_total` | Counter | Total number of write errors to BigQuery. |
+| `storage_bigquery_read_errors_total` | Counter | Total number of read errors from BigQuery |
+| `storage_bigquery_write_api_seconds` | Histogram | Duration of the write api processing that share the same description. |
+| `storage_bigquery_read_api_seconds` | Histogram | Duration of the read api processing that share the same description. |
