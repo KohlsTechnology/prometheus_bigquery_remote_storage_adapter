@@ -71,7 +71,9 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleProjectID, googleA
 
 		jsonFile.Close()
 
-		googleProjectID = fmt.Sprintf("%v", result["project_id"])
+		if googleProjectID == "" {
+			googleProjectID = fmt.Sprintf("%v", result["project_id"])
+		}
 		bigQueryClientOptions = append(bigQueryClientOptions, option.WithCredentialsFile(googleAPIjsonkeypath))
 	}
 
