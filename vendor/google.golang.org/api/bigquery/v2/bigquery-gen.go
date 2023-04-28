@@ -77,6 +77,7 @@ var _ = errors.New
 var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
+var _ = internal.Version
 
 const apiId = "bigquery:v2"
 const apiName = "bigquery"
@@ -4631,6 +4632,10 @@ type JobConfigurationQuery struct {
 	// ConnectionProperties: Connection properties.
 	ConnectionProperties []*ConnectionProperty `json:"connectionProperties,omitempty"`
 
+	// Continuous: [Optional] Specifies whether the query should be executed
+	// as a continuous query. The default value is false.
+	Continuous bool `json:"continuous,omitempty"`
+
 	// CreateDisposition: [Optional] Specifies whether the job is allowed to
 	// create new tables. The following values are supported:
 	// CREATE_IF_NEEDED: If the table does not exist, BigQuery creates the
@@ -6478,6 +6483,10 @@ type QueryRequest struct {
 	// ConnectionProperties: Connection properties.
 	ConnectionProperties []*ConnectionProperty `json:"connectionProperties,omitempty"`
 
+	// Continuous: [Optional] Specifies whether the query should be executed
+	// as a continuous query. The default value is false.
+	Continuous bool `json:"continuous,omitempty"`
+
 	// CreateSession: If true, creates a new session, where session id will
 	// be a server generated random id. If false, runs query with an
 	// existing session_id passed in ConnectionProperty, otherwise runs
@@ -7054,6 +7063,8 @@ type Routine struct {
 	//   "SQL" - SQL language.
 	//   "JAVASCRIPT" - JavaScript language.
 	//   "PYTHON" - Python language.
+	//   "JAVA" - Java language.
+	//   "SCALA" - Scala language.
 	Language string `json:"language,omitempty"`
 
 	// LastModifiedTime: Output only. The time when this routine was last
@@ -7592,6 +7603,11 @@ type SparkOptions struct {
 	// (https://spark.apache.org/docs/latest/index.html).
 	JarUris []string `json:"jarUris,omitempty"`
 
+	// MainClass: The fully qualified name of a class in jar_uris, for
+	// example, com.example.wordcount. Exactly one of main_class and
+	// main_jar_uri field should be set for Java/Scala language type.
+	MainClass string `json:"mainClass,omitempty"`
+
 	// MainFileUri: The main file/jar URI of the Spark application. Exactly
 	// one of the definition_body field and the main_file_uri field must be
 	// set for Python. Exactly one of main_class and main_file_uri field
@@ -7601,7 +7617,9 @@ type SparkOptions struct {
 	// Properties: Configuration properties as a set of key/value pairs,
 	// which will be passed on to the Spark application. For more
 	// information, see Apache Spark
-	// (https://spark.apache.org/docs/latest/index.html).
+	// (https://spark.apache.org/docs/latest/index.html) and the procedure
+	// option list
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#procedure_option_list).
 	Properties map[string]string `json:"properties,omitempty"`
 
 	// PyFileUris: Python files to be placed on the PYTHONPATH for PySpark
@@ -7693,7 +7711,7 @@ type StandardSqlDataType struct {
 	StructType *StandardSqlStructType `json:"structType,omitempty"`
 
 	// TypeKind: Required. The top level type of this field. Can be any
-	// standard SQL data type (e.g., "INT64", "DATE", "ARRAY").
+	// GoogleSQL data type (e.g., "INT64", "DATE", "ARRAY").
 	//
 	// Possible values:
 	//   "TYPE_KIND_UNSPECIFIED" - Invalid type.
@@ -8852,8 +8870,11 @@ type TrainingOptions struct {
 	// AutoArima: Whether to enable auto ARIMA or not.
 	AutoArima bool `json:"autoArima,omitempty"`
 
-	// AutoArimaMaxOrder: The max value of non-seasonal p and q.
+	// AutoArimaMaxOrder: The max value of the sum of non-seasonal p and q.
 	AutoArimaMaxOrder int64 `json:"autoArimaMaxOrder,omitempty,string"`
+
+	// AutoArimaMinOrder: The min value of the sum of non-seasonal p and q.
+	AutoArimaMinOrder int64 `json:"autoArimaMinOrder,omitempty,string"`
 
 	// BatchSize: Batch size for dnn models.
 	BatchSize int64 `json:"batchSize,omitempty,string"`
