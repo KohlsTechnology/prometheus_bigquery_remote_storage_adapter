@@ -1,4 +1,4 @@
-FROM golang:1.20.3 AS builder
+FROM golang:1.20.4 AS builder
 
 WORKDIR /go/src/github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter
 COPY . .
