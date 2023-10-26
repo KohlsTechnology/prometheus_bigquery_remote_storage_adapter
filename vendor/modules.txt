@@ -116,7 +116,7 @@ github.com/golang/snappy
 # github.com/google/flatbuffers v2.0.8+incompatible
 ## explicit
 github.com/google/flatbuffers/go
-# github.com/google/go-cmp v0.5.9
+# github.com/google/go-cmp v0.6.0
 ## explicit; go 1.13
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/internal/diff
@@ -330,7 +330,7 @@ golang.org/x/tools/internal/typesinternal
 ## explicit; go 1.17
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/api v0.147.0
+# google.golang.org/api v0.148.0
 ## explicit; go 1.19
 google.golang.org/api/bigquery/v2
 google.golang.org/api/googleapi
@@ -369,7 +369,7 @@ google.golang.org/genproto/protobuf/field_mask
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20231009173412-8bfb1ae86b6c
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20231012201019-e917dd12ba7a
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/errdetails
