@@ -8,7 +8,7 @@ cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/uid
 cloud.google.com/go/internal/version
-# cloud.google.com/go/bigquery v1.56.0
+# cloud.google.com/go/bigquery v1.57.0
 ## explicit; go 1.19
 cloud.google.com/go/bigquery
 cloud.google.com/go/bigquery/internal
@@ -116,13 +116,6 @@ github.com/golang/snappy
 # github.com/google/flatbuffers v2.0.8+incompatible
 ## explicit
 github.com/google/flatbuffers/go
-# github.com/google/go-cmp v0.6.0
-## explicit; go 1.13
-github.com/google/go-cmp/cmp
-github.com/google/go-cmp/cmp/internal/diff
-github.com/google/go-cmp/cmp/internal/flags
-github.com/google/go-cmp/cmp/internal/function
-github.com/google/go-cmp/cmp/internal/value
 # github.com/google/s2a-go v0.1.7
 ## explicit; go 1.19
 github.com/google/s2a-go
@@ -374,7 +367,7 @@ google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.58.3
+# google.golang.org/grpc v1.59.0
 ## explicit; go 1.19
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -433,6 +426,7 @@ google.golang.org/grpc/keepalive
 google.golang.org/grpc/metadata
 google.golang.org/grpc/peer
 google.golang.org/grpc/resolver
+google.golang.org/grpc/resolver/manual
 google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
