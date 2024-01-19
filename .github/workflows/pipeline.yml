@@ -110,6 +110,7 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.prep.outputs.tags }}
+          platforms: linux/amd64,linux/arm64
       - name: Install GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
