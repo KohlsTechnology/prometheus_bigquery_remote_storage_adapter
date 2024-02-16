@@ -31,7 +31,7 @@ jobs:
     - name: Compile
       run: make build
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v3.7.0
+      uses: golangci/golangci-lint-action@v4.0.0
       with:
         version: v1.54.2
         skip-pkg-cache: true
