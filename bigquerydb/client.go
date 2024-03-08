@@ -163,16 +163,20 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 	inserter := c.client.Dataset(c.datasetID).Table(c.tableID).Inserter()
 	inserter.SkipInvalidRows = true
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	defer cancel()
+	batch := make([]*Item, 0, len(timeseries))
 
 	for i := range timeseries {
 		ts := timeseries[i]
 		samples := ts.Samples
-		batch := make([]*Item, 0, len(samples))
 		c.recordsFetched.Add(float64(len(samples)))
 		metric := make(model.Metric, len(ts.Labels))
 		for _, l := range ts.Labels {
 			metric[model.LabelName(l.Name)] = model.LabelValue(l.Value)
 		}
+
+		t := tagsFromMetric(metric)
+
 		for _, s := range samples {
 			v := float64(s.Value)
 			if math.IsNaN(v) || math.IsInf(v, 0) {
@@ -185,27 +189,25 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 				value:      v,
 				metricname: string(metric[model.MetricNameLabel]),
 				timestamp:  model.Time(s.Timestamp).Unix(),
-				tags:       tagsFromMetric(metric),
+				tags:       t,
 			})
-
 		}
+	}
 
-		begin := time.Now()
-		if err := inserter.Put(ctx, batch); err != nil {
-			if multiError, ok := err.(bigquery.PutMultiError); ok {
-				for _, err1 := range multiError {
-					for _, err2 := range err1.Errors {
-						fmt.Println(err2)
-					}
+	begin := time.Now()
+	if err := inserter.Put(ctx, batch); err != nil {
+		if multiError, ok := err.(bigquery.PutMultiError); ok {
+			for _, err1 := range multiError {
+				for _, err2 := range err1.Errors {
+					fmt.Println(err2)
 				}
 			}
-			defer cancel()
-			return err
 		}
-		duration := time.Since(begin).Seconds()
-		c.batchWriteDuration.Observe(duration)
+		return err
 	}
-	defer cancel()
+	duration := time.Since(begin).Seconds()
+	c.batchWriteDuration.Observe(duration)
+
 	return nil
 }
 
