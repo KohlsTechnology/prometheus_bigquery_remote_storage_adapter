@@ -81,7 +81,7 @@ spec:
       team: frontend
   containers:
     - name: "prometheus-storage-bigquery"
-      image: "quay.io/kohlstechnology/prometheus_bigquery_remote_storage_adapter:v0.7.0"
+      image: "quay.io/kohlstechnology/prometheus_bigquery_remote_storage_adapter:v0.8.0"
       env:
         - name: "PROMBQ_GCP_PROJECT_ID"
           value: "${PROJECT_ID}"
