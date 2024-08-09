@@ -74,10 +74,10 @@ jobs:
       run: |
         make bq-cleanup
     - name: Install GoReleaser
-      uses: goreleaser/goreleaser-action@v5
+      uses: goreleaser/goreleaser-action@v6
       with:
         install-only: true
-        version: v1.20.0
+        version: "~> v2"
     - name: Test GoReleaser
       run: make test-release
   deploy:
@@ -116,10 +116,10 @@ jobs:
           tags: ${{ steps.prep.outputs.tags }}
           platforms: linux/amd64,linux/arm64
       - name: Install GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           install-only: true
-          version: v1.20.0
+          version: "~> v2"
       - name: Run GoReleaser
         run: make release
         env:
