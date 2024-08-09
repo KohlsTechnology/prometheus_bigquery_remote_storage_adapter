@@ -64,7 +64,7 @@ bq-cleanup:
 # Make sure goreleaser is working
 .PHONY: test-release
 test-release:
-	BRANCH=$(BRANCH) COMMIT=$(COMMIT) DATE=$(DATE) VERSION_PKG=$(VERSION_PKG) goreleaser release --snapshot --skip-publish --clean
+	BRANCH=$(BRANCH) COMMIT=$(COMMIT) DATE=$(DATE) VERSION_PKG=$(VERSION_PKG) goreleaser release --snapshot --skip=publish --clean
 
 .PHONY: golangci-lint
 golangci-lint:

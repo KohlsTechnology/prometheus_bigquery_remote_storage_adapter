@@ -1,5 +1,6 @@
 ---
 project_name: prometheus_bigquery_remote_storage_adapter
+version: 2
 env:
   - CGO_ENABLED=0
 builds:
@@ -27,4 +28,4 @@ checksum:
 snapshot:
   name_template: "{{.Tag}}-next"
 changelog:
-  skip: false
+  disable: true
