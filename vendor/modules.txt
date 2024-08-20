@@ -8,7 +8,7 @@ cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/uid
 cloud.google.com/go/internal/version
-# cloud.google.com/go/auth v0.7.3
+# cloud.google.com/go/auth v0.8.1
 ## explicit; go 1.20
 cloud.google.com/go/auth
 cloud.google.com/go/auth/credentials
@@ -363,7 +363,7 @@ golang.org/x/tools/internal/versions
 ## explicit; go 1.18
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/api v0.191.0
+# google.golang.org/api v0.192.0
 ## explicit; go 1.20
 google.golang.org/api/bigquery/v2
 google.golang.org/api/googleapi
