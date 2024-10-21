@@ -12,12 +12,12 @@ require (
 	github.com/prometheus/common v0.60.0
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/stretchr/testify v1.9.0
-	google.golang.org/api v0.200.0
+	google.golang.org/api v0.201.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 )
 
 require (
-	cloud.google.com/go v0.115.1 // indirect
+	cloud.google.com/go v0.116.0 // indirect
 	cloud.google.com/go/auth v0.9.8 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect
