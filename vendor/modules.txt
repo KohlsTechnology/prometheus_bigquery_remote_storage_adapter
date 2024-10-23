@@ -1,5 +1,5 @@
-# cloud.google.com/go v0.115.1
-## explicit; go 1.20
+# cloud.google.com/go v0.116.0
+## explicit; go 1.21
 cloud.google.com/go/civil
 cloud.google.com/go/internal
 cloud.google.com/go/internal/detect
@@ -368,7 +368,7 @@ golang.org/x/tools/internal/versions
 ## explicit; go 1.18
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/api v0.200.0
+# google.golang.org/api v0.201.0
 ## explicit; go 1.21
 google.golang.org/api/bigquery/v2
 google.golang.org/api/googleapi
