@@ -39,7 +39,7 @@ jobs:
     - name: Test
       run: make test-unit
     - name: Upload unit test coverage to Codecov
-      uses: codecov/codecov-action@v4.6.0
+      uses: codecov/codecov-action@v5.0.7
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       with:
@@ -61,7 +61,7 @@ jobs:
         make bq-setup
         make test-e2e
     - name: Upload e2e test coverage to Codecov
-      uses: codecov/codecov-action@v4.6.0
+      uses: codecov/codecov-action@v5.0.7
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       with:
