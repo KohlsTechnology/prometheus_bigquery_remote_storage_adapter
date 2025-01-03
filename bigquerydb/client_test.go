@@ -16,18 +16,18 @@ limitations under the License.
 package bigquerydb
 
 import (
+	"log/slog"
 	"math"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/go-kit/log"
 	"github.com/prometheus/prometheus/prompb"
 	"github.com/stretchr/testify/assert"
 )
 
 var bigQueryClientTimeout = time.Second * 60
-var logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
+var logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 var googleAPIdatasetID = os.Getenv("BQ_DATASET_NAME")
 var googleAPItableID = os.Getenv("BQ_TABLE_NAME")

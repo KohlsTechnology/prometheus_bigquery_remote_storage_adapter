@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -29,14 +30,12 @@ import (
 
 	"github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter/bigquerydb"
 	"github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter/pkg/version"
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/snappy"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/promlog"
+	"github.com/prometheus/common/promslog"
 	"github.com/prometheus/prometheus/prompb"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
@@ -49,7 +48,7 @@ type config struct {
 	remoteTimeout        time.Duration
 	listenAddr           string
 	telemetryPath        string
-	promlogConfig        promlog.Config
+	promslogConfig       promslog.Config
 	printVersion         bool
 }
 
@@ -128,21 +127,21 @@ func main() {
 
 	http.Handle(cfg.telemetryPath, promhttp.Handler())
 
-	logger := promlog.New(&cfg.promlogConfig)
+	logger := promslog.New(&cfg.promslogConfig)
 
-	level.Info(logger).Log("msg", version.Get()) //nolint:errcheck
+	logger.Info(version.Get())
 
-	level.Info(logger).Log("msg", "Configuration settings:", //nolint:errcheck
-		"googleAPIjsonkeypath", cfg.googleAPIjsonkeypath,
-		"googleProjectID", cfg.googleProjectID,
-		"googleAPIdatasetID", cfg.googleAPIdatasetID,
-		"googleAPItableID", cfg.googleAPItableID,
-		"telemetryPath", cfg.telemetryPath,
-		"listenAddr", cfg.listenAddr,
-		"remoteTimeout", cfg.remoteTimeout)
+	logger.Info("configuration settings",
+		slog.Any("googleAPIjsonkeypath", cfg.googleAPIjsonkeypath),
+		slog.Any("googleProjectID", cfg.googleProjectID),
+		slog.Any("googleAPIdatasetID", cfg.googleAPIdatasetID),
+		slog.Any("googleAPItableID", cfg.googleAPItableID),
+		slog.Any("telemetryPath", cfg.telemetryPath),
+		slog.Any("listenAddr", cfg.listenAddr),
+		slog.Any("remoteTimeout", cfg.remoteTimeout))
 
-	writers, readers := buildClients(logger, cfg)
-	serve(logger, cfg.listenAddr, writers, readers)
+	writers, readers := buildClients(*logger, cfg)
+	serve(*logger, cfg.listenAddr, writers, readers)
 }
 
 func parseFlags() *config {
@@ -150,7 +149,7 @@ func parseFlags() *config {
 	a.HelpFlag.Short('h')
 
 	cfg := &config{
-		promlogConfig: promlog.Config{},
+		promslogConfig: promslog.Config{},
 	}
 
 	a.Flag("version", "Print version and build information, then exit").
@@ -170,12 +169,12 @@ func parseFlags() *config {
 		Envar("PROMBQ_LISTEN").Default(":9201").StringVar(&cfg.listenAddr)
 	a.Flag("web.telemetry-path", "Address to listen on for web endpoints.").
 		Envar("PROMBQ_TELEMETRY").Default("/metrics").StringVar(&cfg.telemetryPath)
-	cfg.promlogConfig.Level = &promlog.AllowedLevel{}
+	cfg.promslogConfig.Level = &promslog.AllowedLevel{}
 	a.Flag("log.level", "Only log messages with the given severity or above. One of: [debug, info, warn, error]").
-		Envar("PROMBQ_LOG_LEVEL").Default("info").SetValue(cfg.promlogConfig.Level)
-	cfg.promlogConfig.Format = &promlog.AllowedFormat{}
+		Envar("PROMBQ_LOG_LEVEL").Default("info").SetValue(cfg.promslogConfig.Level)
+	cfg.promslogConfig.Format = &promslog.AllowedFormat{}
 	a.Flag("log.format", "Output format of log messages. One of: [logfmt, json]").
-		Envar("PROMBQ_LOG_FORMAT").Default("logfmt").SetValue(cfg.promlogConfig.Format)
+		Envar("PROMBQ_LOG_FORMAT").Default("logfmt").SetValue(cfg.promslogConfig.Format)
 
 	_, err := a.Parse(os.Args[1:])
 
@@ -212,12 +211,12 @@ type reader interface {
 	Name() string
 }
 
-func buildClients(logger log.Logger, cfg *config) ([]writer, []reader) {
+func buildClients(logger slog.Logger, cfg *config) ([]writer, []reader) {
 	var writers []writer
 	var readers []reader
 
 	c := bigquerydb.NewClient(
-		log.With(logger, "storage", "BigQuery"),
+		logger.With("storage", "bigquery"),
 		cfg.googleAPIjsonkeypath,
 		cfg.googleProjectID,
 		cfg.googleAPIdatasetID,
@@ -226,11 +225,11 @@ func buildClients(logger log.Logger, cfg *config) ([]writer, []reader) {
 	prometheus.MustRegister(c)
 	writers = append(writers, c)
 	readers = append(readers, c)
-	level.Info(logger).Log("msg", "Starting up...") //nolint:errcheck
+	logger.Info("starting up...")
 	return writers, readers
 }
 
-func serve(logger log.Logger, addr string, writers []writer, readers []reader) {
+func serve(logger slog.Logger, addr string, writers []writer, readers []reader) {
 	srv := &http.Server{
 		Addr: addr,
 	}
@@ -240,21 +239,21 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGTERM, os.Interrupt)
 		oscall := <-sigChan
-		level.Warn(logger).Log("msg", "System Call Received stopping HTTP Server...", "SystemCall", oscall) //nolint:errcheck
+		logger.Warn("system call received stopping http server...", slog.Any("systemcall", oscall))
 		if err := srv.Shutdown(context.Background()); err != nil {
-			level.Error(logger).Log("msg", "Shutdown Error", "err", err) //nolint:errcheck
+			logger.Error("error while shutting down http server", slog.Any("error", err))
 			os.Exit(1)
 		}
 		close(idleConnectionClosed)
-		level.Warn(logger).Log("msg", "HTTP Server Shutdown, and connections closed") //nolint:errcheck
+		logger.Warn("http server shutdown, and connections closed")
 	}()
 	http.HandleFunc("/write", func(w http.ResponseWriter, r *http.Request) {
-		level.Debug(logger).Log("msg", "Request", "method", r.Method, "path", r.URL.Path) //nolint:errcheck
+		logger.Debug("write request received", slog.Any("method", r.Method), slog.Any("path", r.URL.Path))
 
 		begin := time.Now()
 		compressed, err := io.ReadAll(r.Body)
 		if err != nil {
-			level.Error(logger).Log("msg", "Read error", "err", err.Error()) //nolint:errcheck
+			logger.Error("read error", slog.Any("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			writeErrors.Inc()
 			return
@@ -262,7 +261,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) {
 
 		reqBuf, err := snappy.Decode(nil, compressed)
 		if err != nil {
-			level.Error(logger).Log("msg", "Decode error", "err", err.Error()) //nolint:errcheck
+			logger.Error("decode error", slog.Any("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			writeErrors.Inc()
 			return
@@ -270,7 +269,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) {
 
 		var req prompb.WriteRequest
 		if err := proto.Unmarshal(reqBuf, &req); err != nil {
-			level.Error(logger).Log("msg", "Unmarshal error", "err", err.Error()) //nolint:errcheck
+			logger.Error("unmarshal error", slog.Any("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			writeErrors.Inc()
 			return
@@ -288,16 +287,16 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) {
 		duration := time.Since(begin).Seconds()
 		writeProcessingDuration.WithLabelValues(writers[0].Name()).Observe(duration)
 
-		level.Debug(logger).Log("msg", "/write", "duration", duration) //nolint:errcheck
+		logger.Debug("write request completed", slog.Any("duration", duration))
 	})
 
 	http.HandleFunc("/read", func(w http.ResponseWriter, r *http.Request) {
-		level.Debug(logger).Log("msg", "Request", "method", r.Method, "path", r.URL.Path) //nolint:errcheck
+		logger.Debug("read request receieved", slog.Any("method", r.Method), slog.Any("path", r.URL.Path))
 
 		begin := time.Now()
 		compressed, err := io.ReadAll(r.Body)
 		if err != nil {
-			level.Error(logger).Log("msg", "Read error", "err", err.Error()) //nolint:errcheck
+			logger.Error("read error", slog.Any("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			readErrors.Inc()
 			return
@@ -305,7 +304,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) {
 
 		reqBuf, err := snappy.Decode(nil, compressed)
 		if err != nil {
-			level.Error(logger).Log("msg", "Decode error", "err", err.Error()) //nolint:errcheck
+			logger.Error("decode error", slog.Any("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			readErrors.Inc()
 			return
@@ -313,7 +312,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) {
 
 		var req prompb.ReadRequest
 		if err := proto.Unmarshal(reqBuf, &req); err != nil {
-			level.Error(logger).Log("msg", "Unmarshal error", "err", err.Error()) //nolint:errcheck
+			logger.Error("unmarshal error", slog.Any("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			readErrors.Inc()
 			return
@@ -330,7 +329,7 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) {
 		var resp *prompb.ReadResponse
 		resp, err = reader.Read(&req)
 		if err != nil {
-			level.Warn(logger).Log("msg", "Error executing query", "query", req, "storage", reader.Name(), "err", err) //nolint:errcheck
+			logger.Warn("error executing query", slog.Any("query", req), slog.Any("storage", reader.Name()), slog.Any("error", err))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			readErrors.Inc()
 			return
@@ -348,32 +347,32 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) {
 
 		compressed = snappy.Encode(nil, data)
 		if _, err := w.Write(compressed); err != nil {
-			level.Warn(logger).Log("msg", "Error writing response", "storage", reader.Name(), "err", err) //nolint:errcheck
+			logger.Warn("error writing response", slog.Any("storage", reader.Name()), slog.Any("error", err))
 			readErrors.Inc()
 		}
 		duration := time.Since(begin).Seconds()
 		readProcessingDuration.WithLabelValues(writers[0].Name()).Observe(duration)
-		level.Debug(logger).Log("msg", "/read", "duration", duration) //nolint:errcheck
+		logger.Debug("read request completed", slog.Any("duration", duration))
 	})
 
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-		level.Error(logger).Log("msg", "Failed to listen", "addr", addr, "err", err) //nolint:errcheck
+		logger.Error("failed to listen", slog.Any("addr", addr), slog.Any("error", err))
 		os.Exit(1)
 	}
 
 	<-idleConnectionClosed
 }
 
-func sendSamples(logger log.Logger, w writer, timeseries []*prompb.TimeSeries) {
+func sendSamples(logger slog.Logger, w writer, timeseries []*prompb.TimeSeries) {
 	begin := time.Now()
 	err := w.Write(timeseries)
 	duration := time.Since(begin).Seconds()
 	if err != nil {
-		level.Warn(logger).Log("msg", "Error sending samples to remote storage", "err", err, "storage", w.Name(), "num_samples", len(timeseries)) //nolint:errcheck
+		logger.Warn("error sending samples to remote storage", slog.Any("error", err), slog.Any("storage", w.Name()), slog.Any("num_samples", len(timeseries)))
 		failedSamples.WithLabelValues(w.Name()).Add(float64(len(timeseries)))
 		writeErrors.Inc()
 	} else {
-		level.Debug(logger).Log("msg", "Sent samples", "num_samples", len(timeseries)) //nolint:errcheck
+		logger.Debug("sent samples", slog.Any("num_samples", len(timeseries)))
 		sentSamples.WithLabelValues(w.Name()).Add(float64(len(timeseries)))
 		sentBatchDuration.WithLabelValues(w.Name()).Observe(duration)
 	}
