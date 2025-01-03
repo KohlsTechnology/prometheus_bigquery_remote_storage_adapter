@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"math"
 	"os"
 	"sort"
@@ -25,8 +26,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/bigquery"
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
@@ -37,7 +36,7 @@ import (
 
 // BigqueryClient allows sending batches of Prometheus samples to Bigquery.
 type BigqueryClient struct {
-	logger             log.Logger
+	logger             slog.Logger
 	client             bigquery.Client
 	datasetID          string
 	tableID            string
@@ -50,13 +49,13 @@ type BigqueryClient struct {
 }
 
 // NewClient creates a new Client.
-func NewClient(logger log.Logger, googleAPIjsonkeypath, googleProjectID, googleAPIdatasetID, googleAPItableID string, remoteTimeout time.Duration) *BigqueryClient {
+func NewClient(logger slog.Logger, googleAPIjsonkeypath, googleProjectID, googleAPIdatasetID, googleAPItableID string, remoteTimeout time.Duration) *BigqueryClient {
 	ctx := context.Background()
 	bigQueryClientOptions := []option.ClientOption{}
 	if googleAPIjsonkeypath != "" {
 		jsonFile, err := os.Open(googleAPIjsonkeypath)
 		if err != nil {
-			level.Error(logger).Log("err", err) //nolint:errcheck
+			logger.Error("failed to open google API json key", slog.Any("err", err))
 			os.Exit(1)
 		}
 
@@ -65,7 +64,7 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleProjectID, googleA
 		var result map[string]interface{}
 		err = json.Unmarshal([]byte(byteValue), &result)
 		if err != nil {
-			level.Error(logger).Log("err", err) //nolint:errcheck
+			logger.Error("failed to unmarshal google API json key", slog.Any("err", err))
 			os.Exit(1)
 		}
 
@@ -80,13 +79,14 @@ func NewClient(logger log.Logger, googleAPIjsonkeypath, googleProjectID, googleA
 	c, err := bigquery.NewClient(ctx, googleProjectID, bigQueryClientOptions...)
 
 	if err != nil {
-		level.Error(logger).Log("err", err) //nolint:errcheck
+		logger.Error("failed to create new bigquery client", slog.Any("err", err))
 		os.Exit(1)
 	}
 
-	if logger == nil {
-		logger = log.NewNopLogger()
-	}
+	// TODO: Fix this
+	// if logger == nil {
+	// 	logger = log.NewNopLogger()
+	// }
 
 	return &BigqueryClient{
 		logger:    logger,
@@ -180,7 +180,7 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 		for _, s := range samples {
 			v := float64(s.Value)
 			if math.IsNaN(v) || math.IsInf(v, 0) {
-				//level.Debug(c.logger).Log("msg", "cannot send to BigQuery, skipping sample", "value", v, "sample", s)
+				//logger.Debug("cannot send to BigQuery, skipping sample", slog.Any("value", v), slog.Any("sample", s))
 				c.ignoredSamples.Inc()
 				continue
 			}
@@ -259,7 +259,7 @@ func (c *BigqueryClient) Read(req *prompb.ReadRequest) (*prompb.ReadResponse, er
 		}
 		duration := time.Since(begin).Seconds()
 		c.sqlQueryDuration.Observe(duration)
-		level.Debug(c.logger).Log("msg", "BigQuery SQL query", "rows", iter.TotalRows, "duration", duration) //nolint:errcheck
+		c.logger.Debug("BigQuery SQL query", slog.Any("rows", iter.TotalRows), slog.Any("duration", duration))
 	}
 
 	resp := prompb.ReadResponse{
@@ -312,7 +312,7 @@ func (c *BigqueryClient) buildCommand(q *prompb.Query) (string, error) {
 	matchers = append(matchers, fmt.Sprintf("timestamp <= TIMESTAMP_MILLIS(%v)", q.EndTimestampMs))
 
 	query := fmt.Sprintf("SELECT metricname, tags, UNIX_MILLIS(timestamp) as timestamp, value FROM %s.%s WHERE %v ORDER BY timestamp", c.datasetID, c.tableID, strings.Join(matchers, " AND "))
-	level.Debug(c.logger).Log("msg", "BigQuery read", "sql query", query) //nolint:errcheck
+	c.logger.Debug("BigQuery read", slog.Any("sql query", query))
 
 	return query, nil
 }
