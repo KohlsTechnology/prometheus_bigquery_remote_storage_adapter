@@ -25,10 +25,10 @@ bq mk --table \
 The `tags` field is a JSON string and can be easily extracted. Here is an example query:
 
 ```sql
-SELECT metricname, tags, JSON_EXTRACT(tags, '$.some_label')
+SELECT metricname, tags, JSON_QUERY(tags, '$.some_label')
   AS some_label, value, timestamp
   FROM `your_gcp_project.prometheus.metrics_stream`
-  WHERE JSON_EXTRACT(tags, '$.some_label') = "\\"target_label_value\\""
+  WHERE JSON_QUERY(tags, '$.some_label') = "\\"target_label_value\\""
 ```
 
 Consider enabling partition expiration on the destination table based on your data retention and billing requirements (https://cloud.google.com/bigquery/docs/managing-partitioned-tables#partition-expiration).
