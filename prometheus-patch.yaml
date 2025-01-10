@@ -1,0 +1,38 @@
+spec:
+  containers:
+  - env:
+    - name: PROMBQ_GCP_PROJECT_ID
+      value: kohlsdev-prombq-adaptor
+    - name: PROMBQ_DATASET
+      value: prometheus
+    - name: PROMBQ_TABLE
+      value: metrics
+    - name: PROMBQ_TIMEOUT
+      value: 2m
+    - name: GOOGLE_APPLICATION_CREDENTIALS
+      value: /var/run/secret/gcp.json
+    image: quay.io/kohlstechnology/prometheus_bigquery_remote_storage_adapter:latest
+    imagePullPolicy: IfNotPresent
+    name: prometheus-storage-bigquery
+    volumeMounts:
+      - name: gcpcred
+        readOnly: true
+        mountPath: /var/run/secret
+  remoteRead:
+  - remoteTimeout: 1m
+    url: http://localhost:9201/read
+  remoteWrite:
+  - queueConfig:
+      batchSendDeadline: 5s
+      capacity: 500
+      maxBackoff: 100ms
+      maxSamplesPerSend: 100
+      maxShards: 200
+      minBackoff: 30ms
+      minShards: 1
+    remoteTimeout: 2m
+    url: http://localhost:9201/write
+  volumes:
+    - name: gcpcred
+      secret:
+        secretName: gcpcred
