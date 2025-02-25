@@ -1,7 +1,6 @@
 module github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter
 
 go 1.23
-
 require (
 	cloud.google.com/go/bigquery v1.66.2
 	github.com/gogo/protobuf v1.3.2
@@ -11,7 +10,7 @@ require (
 	github.com/prometheus/common v0.62.0
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/stretchr/testify v1.10.0
-	google.golang.org/api v0.221.0
+	google.golang.org/api v0.222.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 )
 
@@ -65,7 +64,7 @@ require (
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/genproto v0.0.0-20250122153221-138b5a5a4fd4 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250127172529-29210b9bc287 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250207221924-e9438ea467c6 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250212204824-5a70512c5d8b // indirect
 	google.golang.org/grpc v1.70.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
