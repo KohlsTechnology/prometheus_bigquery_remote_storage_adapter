@@ -5,7 +5,7 @@ go 1.24
 require (
 	cloud.google.com/go/bigquery v1.67.0
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang/snappy v0.0.4
+	github.com/golang/snappy v1.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.21.1
 	github.com/prometheus/common v0.63.0
