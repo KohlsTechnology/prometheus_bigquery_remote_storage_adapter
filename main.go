@@ -169,10 +169,10 @@ func parseFlags() *config {
 		Envar("PROMBQ_LISTEN").Default(":9201").StringVar(&cfg.listenAddr)
 	a.Flag("web.telemetry-path", "Address to listen on for web endpoints.").
 		Envar("PROMBQ_TELEMETRY").Default("/metrics").StringVar(&cfg.telemetryPath)
-	cfg.promslogConfig.Level = &promslog.AllowedLevel{}
+	cfg.promslogConfig.Level = &promslog.Level{}
 	a.Flag("log.level", "Only log messages with the given severity or above. One of: [debug, info, warn, error]").
 		Envar("PROMBQ_LOG_LEVEL").Default("info").SetValue(cfg.promslogConfig.Level)
-	cfg.promslogConfig.Format = &promslog.AllowedFormat{}
+	cfg.promslogConfig.Format = &promslog.Format{}
 	a.Flag("log.format", "Output format of log messages. One of: [logfmt, json]").
 		Envar("PROMBQ_LOG_FORMAT").Default("logfmt").SetValue(cfg.promslogConfig.Format)
 
