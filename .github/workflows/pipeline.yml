@@ -31,9 +31,9 @@ jobs:
     - name: Compile
       run: make build
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v6.5.2
+      uses: golangci/golangci-lint-action@v7.0.0
       with:
-        version: v1.64.8
+        version: v2.0.2
     - name: Test
       run: make test-unit
     - name: Upload unit test coverage to Codecov
