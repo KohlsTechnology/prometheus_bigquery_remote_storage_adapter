@@ -377,9 +377,9 @@ func rowToSample(row map[string]bigquery.Value) (prompb.Sample, model.Metric, []
 }
 
 func escapeSingleQuotes(str string) string {
-	return strings.Replace(str, `'`, `\'`, -1)
+	return strings.ReplaceAll(str, `'`, `\'`)
 }
 
 func escapeSlashes(str string) string {
-	return strings.Replace(str, `/`, `\/`, -1)
+	return strings.ReplaceAll(str, `/`, `\/`)
 }
