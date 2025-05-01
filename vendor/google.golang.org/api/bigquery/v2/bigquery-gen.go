@@ -162,9 +162,6 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	s.RowAccessPolicies = NewRowAccessPoliciesService(s)
 	s.Tabledata = NewTabledataService(s)
 	s.Tables = NewTablesService(s)
-	if err != nil {
-		return nil, err
-	}
 	if endpoint != "" {
 		s.BasePath = endpoint
 	}
@@ -979,7 +976,8 @@ func (s BiEngineStatistics) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// BigLakeConfiguration: Configuration for BigLake managed tables.
+// BigLakeConfiguration: Configuration for BigQuery tables for Apache Iceberg
+// (formerly BigLake managed tables.)
 type BigLakeConfiguration struct {
 	// ConnectionId: Optional. The connection specifying the credentials to be used
 	// to read and write to external storage, such as Cloud Storage. The
@@ -8701,8 +8699,8 @@ func (s SystemVariables) MarshalJSON() ([]byte, error) {
 }
 
 type Table struct {
-	// BiglakeConfiguration: Optional. Specifies the configuration of a BigLake
-	// managed table.
+	// BiglakeConfiguration: Optional. Specifies the configuration of a BigQuery
+	// table for Apache Iceberg.
 	BiglakeConfiguration *BigLakeConfiguration `json:"biglakeConfiguration,omitempty"`
 	// CloneDefinition: Output only. Contains information about the clone. This
 	// value is set via the clone operation.
