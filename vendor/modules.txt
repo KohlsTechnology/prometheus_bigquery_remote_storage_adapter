@@ -267,7 +267,7 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# golang.org/x/crypto v0.37.0
+# golang.org/x/crypto v0.38.0
 ## explicit; go 1.23.0
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/chacha20poly1305
@@ -284,7 +284,7 @@ golang.org/x/exp/constraints
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.39.0
+# golang.org/x/net v0.40.0
 ## explicit; go 1.23.0
 golang.org/x/net/context
 golang.org/x/net/http/httpguts
@@ -294,7 +294,7 @@ golang.org/x/net/idna
 golang.org/x/net/internal/httpcommon
 golang.org/x/net/internal/timeseries
 golang.org/x/net/trace
-# golang.org/x/oauth2 v0.29.0
+# golang.org/x/oauth2 v0.30.0
 ## explicit; go 1.23.0
 golang.org/x/oauth2
 golang.org/x/oauth2/authhandler
@@ -310,13 +310,13 @@ golang.org/x/oauth2/jwt
 ## explicit; go 1.23.0
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.32.0
+# golang.org/x/sys v0.33.0
 ## explicit; go 1.23.0
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/text v0.24.0
+# golang.org/x/text v0.25.0
 ## explicit; go 1.23.0
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
@@ -354,7 +354,7 @@ golang.org/x/tools/internal/versions
 ## explicit; go 1.18
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/api v0.231.0
+# google.golang.org/api v0.233.0
 ## explicit; go 1.23.0
 google.golang.org/api/bigquery/v2
 google.golang.org/api/googleapi
@@ -379,7 +379,7 @@ google.golang.org/genproto/protobuf/field_mask
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20250428153025-10db94c68c34
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20250505200425-f936aa4a68b2
 ## explicit; go 1.23.0
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/errdetails
