@@ -8,7 +8,7 @@ require (
 	github.com/golang/snappy v1.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.22.0
-	github.com/prometheus/common v0.64.0
+	github.com/prometheus/common v0.65.0
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/stretchr/testify v1.10.0
 	google.golang.org/api v0.239.0
