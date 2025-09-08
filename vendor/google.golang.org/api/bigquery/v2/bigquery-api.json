@@ -36,8 +36,33 @@
   "endpoints": [
     {
       "description": "Regional Endpoint",
+      "endpointUrl": "https://bigquery.asia-south1.rep.googleapis.com/",
+      "location": "asia-south1"
+    },
+    {
+      "description": "Regional Endpoint",
+      "endpointUrl": "https://bigquery.asia-south2.rep.googleapis.com/",
+      "location": "asia-south2"
+    },
+    {
+      "description": "Regional Endpoint",
+      "endpointUrl": "https://bigquery.europe-west1.rep.googleapis.com/",
+      "location": "europe-west1"
+    },
+    {
+      "description": "Regional Endpoint",
+      "endpointUrl": "https://bigquery.europe-west2.rep.googleapis.com/",
+      "location": "europe-west2"
+    },
+    {
+      "description": "Regional Endpoint",
       "endpointUrl": "https://bigquery.europe-west3.rep.googleapis.com/",
       "location": "europe-west3"
+    },
+    {
+      "description": "Regional Endpoint",
+      "endpointUrl": "https://bigquery.europe-west6.rep.googleapis.com/",
+      "location": "europe-west6"
     },
     {
       "description": "Regional Endpoint",
@@ -276,9 +301,9 @@
               ],
               "enumDescriptions": [
                 "The default value. Default to the FULL view.",
-                "Updates metadata information for the dataset, such as friendlyName, description, labels, etc.",
-                "Updates ACL information for the dataset, which defines dataset access for one or more entities.",
-                "Updates both dataset metadata and ACL information."
+                "View metadata information for the dataset, such as friendlyName, description, labels, etc.",
+                "View ACL information for the dataset, which defines dataset access for one or more entities.",
+                "View both dataset metadata and ACL information."
               ],
               "location": "query",
               "type": "string"
@@ -670,6 +695,23 @@
             "jobId"
           ],
           "parameters": {
+            "formatOptions.timestampOutputFormat": {
+              "description": "Optional. The API output format for a timestamp. This offers more explicit control over the timestamp output format as compared to the existing `use_int64_timestamp` option.",
+              "enum": [
+                "TIMESTAMP_OUTPUT_FORMAT_UNSPECIFIED",
+                "FLOAT64",
+                "INT64",
+                "ISO8601_STRING"
+              ],
+              "enumDescriptions": [
+                "Corresponds to default API output behavior, which is FLOAT64.",
+                "Timestamp is output as float64 seconds since Unix epoch.",
+                "Timestamp is output as int64 microseconds since Unix epoch.",
+                "Timestamp is output as ISO 8601 String (\"YYYY-MM-DDTHH:MM:SS.FFFFFFFFFFFFZ\")."
+              ],
+              "location": "query",
+              "type": "string"
+            },
             "formatOptions.useInt64Timestamp": {
               "description": "Optional. Output timestamp as usec int64. Default is false.",
               "location": "query",
@@ -1377,6 +1419,36 @@
             "https://www.googleapis.com/auth/cloud-platform"
           ]
         },
+        "testIamPermissions": {
+          "description": "Returns permissions that a caller has on the specified resource. If the resource does not exist, this will return an empty set of permissions, not a `NOT_FOUND` error. Note: This operation is designed to be used for building permission-aware UIs and command-line tools, not for authorization checking. This operation may \"fail open\" without warning.",
+          "flatPath": "projects/{projectsId}/datasets/{datasetsId}/routines/{routinesId}:testIamPermissions",
+          "httpMethod": "POST",
+          "id": "bigquery.routines.testIamPermissions",
+          "parameterOrder": [
+            "resource"
+          ],
+          "parameters": {
+            "resource": {
+              "description": "REQUIRED: The resource for which the policy detail is being requested. See [Resource names](https://cloud.google.com/apis/design/resource_names) for the appropriate value for this field.",
+              "location": "path",
+              "pattern": "^projects/[^/]+/datasets/[^/]+/routines/[^/]+$",
+              "required": true,
+              "type": "string"
+            }
+          },
+          "path": "{+resource}:testIamPermissions",
+          "request": {
+            "$ref": "TestIamPermissionsRequest"
+          },
+          "response": {
+            "$ref": "TestIamPermissionsResponse"
+          },
+          "scopes": [
+            "https://www.googleapis.com/auth/bigquery",
+            "https://www.googleapis.com/auth/cloud-platform",
+            "https://www.googleapis.com/auth/cloud-platform.read-only"
+          ]
+        },
         "update": {
           "description": "Updates information in an existing routine. The update method replaces the entire Routine resource.",
           "flatPath": "projects/{projectsId}/datasets/{datasetsId}/routines/{routinesId}",
@@ -1465,8 +1537,7 @@
           },
           "scopes": [
             "https://www.googleapis.com/auth/bigquery",
-            "https://www.googleapis.com/auth/cloud-platform",
-            "https://www.googleapis.com/auth/cloud-platform.read-only"
+            "https://www.googleapis.com/auth/cloud-platform"
           ]
         },
         "delete": {
@@ -1518,8 +1589,7 @@
           "path": "projects/{+projectId}/datasets/{+datasetId}/tables/{+tableId}/rowAccessPolicies/{+policyId}",
           "scopes": [
             "https://www.googleapis.com/auth/bigquery",
-            "https://www.googleapis.com/auth/cloud-platform",
-            "https://www.googleapis.com/auth/cloud-platform.read-only"
+            "https://www.googleapis.com/auth/cloud-platform"
           ]
         },
         "get": {
@@ -1645,8 +1715,7 @@
           },
           "scopes": [
             "https://www.googleapis.com/auth/bigquery",
-            "https://www.googleapis.com/auth/cloud-platform",
-            "https://www.googleapis.com/auth/cloud-platform.read-only"
+            "https://www.googleapis.com/auth/cloud-platform"
           ]
         },
         "list": {
@@ -1783,8 +1852,7 @@
           },
           "scopes": [
             "https://www.googleapis.com/auth/bigquery",
-            "https://www.googleapis.com/auth/cloud-platform",
-            "https://www.googleapis.com/auth/cloud-platform.read-only"
+            "https://www.googleapis.com/auth/cloud-platform"
           ]
         }
       }
@@ -1853,6 +1921,23 @@
               "location": "path",
               "pattern": "^[^/]+$",
               "required": true,
+              "type": "string"
+            },
+            "formatOptions.timestampOutputFormat": {
+              "description": "Optional. The API output format for a timestamp. This offers more explicit control over the timestamp output format as compared to the existing `use_int64_timestamp` option.",
+              "enum": [
+                "TIMESTAMP_OUTPUT_FORMAT_UNSPECIFIED",
+                "FLOAT64",
+                "INT64",
+                "ISO8601_STRING"
+              ],
+              "enumDescriptions": [
+                "Corresponds to default API output behavior, which is FLOAT64.",
+                "Timestamp is output as float64 seconds since Unix epoch.",
+                "Timestamp is output as int64 microseconds since Unix epoch.",
+                "Timestamp is output as ISO 8601 String (\"YYYY-MM-DDTHH:MM:SS.FFFFFFFFFFFFZ\")."
+              ],
+              "location": "query",
               "type": "string"
             },
             "formatOptions.useInt64Timestamp": {
@@ -2290,7 +2375,7 @@
       }
     }
   },
-  "revision": "20250511",
+  "revision": "20250816",
   "rootUrl": "https://bigquery.googleapis.com/",
   "schemas": {
     "AggregateClassificationMetrics": {
@@ -2499,7 +2584,8 @@
               "WEEKLY",
               "MONTHLY",
               "QUARTERLY",
-              "YEARLY"
+              "YEARLY",
+              "HOURLY"
             ],
             "enumDescriptions": [
               "Unspecified seasonal period.",
@@ -2508,7 +2594,8 @@
               "Weekly period, 7 days.",
               "Monthly period, 30 days or irregular.",
               "Quarterly period, 90 days or irregular.",
-              "Yearly period, 365 days or irregular."
+              "Yearly period, 365 days or irregular.",
+              "Hourly period, 1 hour."
             ],
             "type": "string"
           },
@@ -2567,7 +2654,8 @@
               "WEEKLY",
               "MONTHLY",
               "QUARTERLY",
-              "YEARLY"
+              "YEARLY",
+              "HOURLY"
             ],
             "enumDescriptions": [
               "Unspecified seasonal period.",
@@ -2576,7 +2664,8 @@
               "Weekly period, 7 days.",
               "Monthly period, 30 days or irregular.",
               "Quarterly period, 90 days or irregular.",
-              "Yearly period, 365 days or irregular."
+              "Yearly period, 365 days or irregular.",
+              "Hourly period, 1 hour."
             ],
             "type": "string"
           },
@@ -2639,7 +2728,8 @@
               "WEEKLY",
               "MONTHLY",
               "QUARTERLY",
-              "YEARLY"
+              "YEARLY",
+              "HOURLY"
             ],
             "enumDescriptions": [
               "Unspecified seasonal period.",
@@ -2648,7 +2738,8 @@
               "Weekly period, 7 days.",
               "Monthly period, 30 days or irregular.",
               "Quarterly period, 90 days or irregular.",
-              "Yearly period, 365 days or irregular."
+              "Yearly period, 365 days or irregular.",
+              "Hourly period, 1 hour."
             ],
             "type": "string"
           },
@@ -2695,7 +2786,8 @@
               "WEEKLY",
               "MONTHLY",
               "QUARTERLY",
-              "YEARLY"
+              "YEARLY",
+              "HOURLY"
             ],
             "enumDescriptions": [
               "Unspecified seasonal period.",
@@ -2704,7 +2796,8 @@
               "Weekly period, 7 days.",
               "Monthly period, 30 days or irregular.",
               "Quarterly period, 90 days or irregular.",
-              "Yearly period, 365 days or irregular."
+              "Yearly period, 365 days or irregular.",
+              "Hourly period, 1 hour."
             ],
             "type": "string"
           },
@@ -3442,6 +3535,22 @@
       "description": "Options for data format adjustments.",
       "id": "DataFormatOptions",
       "properties": {
+        "timestampOutputFormat": {
+          "description": "Optional. The API output format for a timestamp. This offers more explicit control over the timestamp output format as compared to the existing `use_int64_timestamp` option.",
+          "enum": [
+            "TIMESTAMP_OUTPUT_FORMAT_UNSPECIFIED",
+            "FLOAT64",
+            "INT64",
+            "ISO8601_STRING"
+          ],
+          "enumDescriptions": [
+            "Corresponds to default API output behavior, which is FLOAT64.",
+            "Timestamp is output as float64 seconds since Unix epoch.",
+            "Timestamp is output as int64 microseconds since Unix epoch.",
+            "Timestamp is output as ISO 8601 String (\"YYYY-MM-DDTHH:MM:SS.FFFFFFFFFFFFZ\")."
+          ],
+          "type": "string"
+        },
         "useInt64Timestamp": {
           "description": "Optional. Output timestamp as usec int64. Default is false.",
           "type": "boolean"
@@ -3461,7 +3570,7 @@
       "type": "object"
     },
     "DataPolicyOption": {
-      "description": "Data policy option proto, it currently supports name only, will support precedence later.",
+      "description": "Data policy option. For more information, see [Mask data by applying data policies to a column](https://cloud.google.com/bigquery/docs/column-data-masking#data-policies-on-column/).",
       "id": "DataPolicyOption",
       "properties": {
         "name": {
@@ -4549,10 +4658,43 @@
       },
       "type": "object"
     },
+    "ExternalRuntimeOptions": {
+      "description": "Options for the runtime of the external system.",
+      "id": "ExternalRuntimeOptions",
+      "properties": {
+        "containerCpu": {
+          "description": "Optional. Amount of CPU provisioned for a Python UDF container instance. For more information, see [Configure container limits for Python UDFs](https://cloud.google.com/bigquery/docs/user-defined-functions-python#configure-container-limits)",
+          "format": "double",
+          "type": "number"
+        },
+        "containerMemory": {
+          "description": "Optional. Amount of memory provisioned for a Python UDF container instance. Format: {number}{unit} where unit is one of \"M\", \"G\", \"Mi\" and \"Gi\" (e.g. 1G, 512Mi). If not specified, the default value is 512Mi. For more information, see [Configure container limits for Python UDFs](https://cloud.google.com/bigquery/docs/user-defined-functions-python#configure-container-limits)",
+          "type": "string"
+        },
+        "maxBatchingRows": {
+          "description": "Optional. Maximum number of rows in each batch sent to the external runtime. If absent or if 0, BigQuery dynamically decides the number of rows in a batch.",
+          "format": "int64",
+          "type": "string"
+        },
+        "runtimeConnection": {
+          "description": "Optional. Fully qualified name of the connection whose service account will be used to execute the code in the container. Format: ```\"projects/{project_id}/locations/{location_id}/connections/{connection_id}\"```",
+          "type": "string"
+        },
+        "runtimeVersion": {
+          "description": "Optional. Language runtime version. Example: `python-3.11`.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "ExternalServiceCost": {
       "description": "The external service cost is a portion of the total cost, these costs are not additive with total_bytes_billed. Moreover, this field only track external service costs that will show up as BigQuery costs (e.g. training BigQuery ML job with google cloud CAIP or Automl Tables services), not other costs which may be accrued by running the query (e.g. reading from Bigtable or Cloud Storage). The external service costs with different billing sku (e.g. CAIP job is charged based on VM usage) are converted to BigQuery billed_bytes and slot_ms with equivalent amount of US dollars. Services may not directly correlate to these metrics, but these are the equivalents for billing purposes. Output only.",
       "id": "ExternalServiceCost",
       "properties": {
+        "billingMethod": {
+          "description": "The billing method used for the external job. This field is only used when billed on the services sku, set to \"SERVICES_SKU\". Otherwise, it is unspecified for backward compatibility.",
+          "type": "string"
+        },
         "bytesBilled": {
           "description": "External service cost in terms of bigquery bytes billed.",
           "format": "int64",
@@ -5024,6 +5166,7 @@
             "BASE_TABLE_TOO_SMALL",
             "BASE_TABLE_TOO_LARGE",
             "ESTIMATED_PERFORMANCE_GAIN_TOO_LOW",
+            "COLUMN_METADATA_INDEX_NOT_USED",
             "NOT_SUPPORTED_IN_STANDARD_EDITION",
             "INDEX_SUPPRESSED_BY_FUNCTION_OPTION",
             "QUERY_CACHE_HIT",
@@ -5047,6 +5190,7 @@
             "Indicates the base table is too small (below a certain threshold). The index does not provide noticeable search performance gains when the base table is too small.",
             "Indicates that the total size of indexed base tables in your organization exceeds your region's limit and the index is not used in the query. To index larger base tables, you can use your own reservation for index-management jobs.",
             "Indicates that the estimated performance gain from using the search index is too low for the given search query.",
+            "Indicates that the column metadata index (which the search index depends on) is not used. User can refer to the [column metadata index usage](https://cloud.google.com/bigquery/docs/metadata-indexing-managed-tables#view_column_metadata_index_usage) for more details on why it was not used.",
             "Indicates that search indexes can not be used for search query with STANDARD edition.",
             "Indicates that an option in the search function that cannot make use of the index has been selected.",
             "Indicates that the query was cached, and thus the search index was not used.",
@@ -5225,7 +5369,7 @@
         },
         "jobCreationReason": {
           "$ref": "JobCreationReason",
-          "description": "Output only. The reason why a Job was created. [Preview](https://cloud.google.com/products/#product-launch-stages)",
+          "description": "Output only. The reason why a Job was created.",
           "readOnly": true
         },
         "jobReference": {
@@ -5316,6 +5460,11 @@
         "load": {
           "$ref": "JobConfigurationLoad",
           "description": "[Pick one] Configures a load job."
+        },
+        "maxSlots": {
+          "description": "Optional. INTERNAL: DO NOT USE. The maximum rate of slot consumption to allow for this job. If set, the number of slots used to execute the job will be throttled to try and keep its slot consumption below the requested rate.",
+          "format": "int32",
+          "type": "integer"
         },
         "query": {
           "$ref": "JobConfigurationQuery",
@@ -5834,7 +5983,7 @@
       "type": "object"
     },
     "JobCreationReason": {
-      "description": "Reason about why a Job was created from a [`jobs.query`](https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/query) method when used with `JOB_CREATION_OPTIONAL` Job creation mode. For [`jobs.insert`](https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/insert) method calls it will always be `REQUESTED`. [Preview](https://cloud.google.com/products/#product-launch-stages)",
+      "description": "Reason about why a Job was created from a [`jobs.query`](https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/query) method when used with `JOB_CREATION_OPTIONAL` Job creation mode. For [`jobs.insert`](https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/insert) method calls it will always be `REQUESTED`.",
       "id": "JobCreationReason",
       "properties": {
         "code": {
@@ -6349,6 +6498,12 @@
         },
         "totalPartitionsProcessed": {
           "description": "Output only. Total number of partitions processed from all partitioned tables referenced in the job.",
+          "format": "int64",
+          "readOnly": true,
+          "type": "string"
+        },
+        "totalServicesSkuSlotMs": {
+          "description": "Output only. Total slot-milliseconds for the job that run on external services and billed on the service SKU. This field is only populated for jobs that have external service costs, and is the total of the usage for costs whose billing method is \"SERVICES_SKU\".",
           "format": "int64",
           "readOnly": true,
           "type": "string"
@@ -7440,6 +7595,24 @@
       },
       "type": "object"
     },
+    "PythonOptions": {
+      "description": "Options for a user-defined Python function.",
+      "id": "PythonOptions",
+      "properties": {
+        "entryPoint": {
+          "description": "Required. The name of the function defined in Python code as the entry point when the Python UDF is invoked.",
+          "type": "string"
+        },
+        "packages": {
+          "description": "Optional. A list of Python package names along with versions to be installed. Example: [\"pandas\u003e=2.1\", \"google-cloud-translate==3.11\"]. For more information, see [Use third-party packages](https://cloud.google.com/bigquery/docs/user-defined-functions-python#third-party-packages).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
     "QueryInfo": {
       "description": "Query optimization information for a QUERY job.",
       "id": "QueryInfo",
@@ -7508,6 +7681,12 @@
             "type": "object"
           },
           "type": "array"
+        },
+        "timestampPrecision": {
+          "default": "6",
+          "description": "Optional. Precision (maximum number of total digits in base 10) for seconds of TIMESTAMP type. Possible values include: * 6 (Default, for TIMESTAMP type with microsecond precision) * 12 (For TIMESTAMP type with picosecond precision)",
+          "format": "int64",
+          "type": "string"
         },
         "type": {
           "description": "Required. The top level type of this field.",
@@ -7581,7 +7760,7 @@
           "description": "Optional. Output format adjustments."
         },
         "jobCreationMode": {
-          "description": "Optional. If not set, jobs are always required. If set, the query request will follow the behavior described JobCreationMode. [Preview](https://cloud.google.com/products/#product-launch-stages)",
+          "description": "Optional. If not set, jobs are always required. If set, the query request will follow the behavior described JobCreationMode.",
           "enum": [
             "JOB_CREATION_MODE_UNSPECIFIED",
             "JOB_CREATION_REQUIRED",
@@ -7618,6 +7797,11 @@
         "maxResults": {
           "description": "Optional. The maximum number of rows of data to return per page of results. Setting this flag to a small value such as 1000 and then paging through results might improve reliability when the query result set is large. In addition to this limit, responses are also limited to 10 MB. By default, there is no maximum row count, and only the byte limit applies.",
           "format": "uint32",
+          "type": "integer"
+        },
+        "maxSlots": {
+          "description": "Optional. INTERNAL: DO NOT USE. The maximum rate of slot consumption to allow for this job. If set, the number of slots used to execute the job will be throttled to try and keep its slot consumption below the requested rate. This limit is best effort.",
+          "format": "int32",
           "type": "integer"
         },
         "maximumBytesBilled": {
@@ -7713,7 +7897,7 @@
         },
         "jobCreationReason": {
           "$ref": "JobCreationReason",
-          "description": "Optional. The reason why a Job was created. Only relevant when a job_reference is present in the response. If job_reference is not present it will always be unset. [Preview](https://cloud.google.com/products/#product-launch-stages)"
+          "description": "Optional. The reason why a Job was created. Only relevant when a job_reference is present in the response. If job_reference is not present it will always be unset."
         },
         "jobReference": {
           "$ref": "JobReference",
@@ -7740,7 +7924,7 @@
           "type": "string"
         },
         "queryId": {
-          "description": "Auto-generated ID for the query. [Preview](https://cloud.google.com/products/#product-launch-stages)",
+          "description": "Auto-generated ID for the query.",
           "type": "string"
         },
         "rows": {
@@ -8065,7 +8249,7 @@
           "type": "string"
         },
         "definitionBody": {
-          "description": "Required. The body of the routine. For functions, this is the expression in the AS clause. If language=SQL, it is the substring inside (but excluding) the parentheses. For example, for the function created with the following statement: `CREATE FUNCTION JoinLines(x string, y string) as (concat(x, \"\\n\", y))` The definition_body is `concat(x, \"\\n\", y)` (\\n is not replaced with linebreak). If language=JAVASCRIPT, it is the evaluated string in the AS clause. For example, for the function created with the following statement: `CREATE FUNCTION f() RETURNS STRING LANGUAGE js AS 'return \"\\n\";\\n'` The definition_body is `return \"\\n\";\\n` Note that both \\n are replaced with linebreaks.",
+          "description": "Required. The body of the routine. For functions, this is the expression in the AS clause. If `language = \"SQL\"`, it is the substring inside (but excluding) the parentheses. For example, for the function created with the following statement: `CREATE FUNCTION JoinLines(x string, y string) as (concat(x, \"\\n\", y))` The definition_body is `concat(x, \"\\n\", y)` (\\n is not replaced with linebreak). If `language=\"JAVASCRIPT\"`, it is the evaluated string in the AS clause. For example, for the function created with the following statement: `CREATE FUNCTION f() RETURNS STRING LANGUAGE js AS 'return \"\\n\";\\n'` The definition_body is `return \"\\n\";\\n` Note that both \\n are replaced with linebreaks. If `definition_body` references another routine, then that routine must be fully qualified with its project ID.",
           "type": "string"
         },
         "description": {
@@ -8090,6 +8274,10 @@
           "description": "Output only. A hash of this resource.",
           "readOnly": true,
           "type": "string"
+        },
+        "externalRuntimeOptions": {
+          "$ref": "ExternalRuntimeOptions",
+          "description": "Optional. Options for the runtime of the external system executing the routine. This field is only applicable for Python UDFs. [Preview](https://cloud.google.com/products/#product-launch-stages)"
         },
         "importedLibraries": {
           "description": "Optional. If language = \"JAVASCRIPT\", this field stores the path of the imported JAVASCRIPT libraries.",
@@ -8123,6 +8311,10 @@
           "format": "int64",
           "readOnly": true,
           "type": "string"
+        },
+        "pythonOptions": {
+          "$ref": "PythonOptions",
+          "description": "Optional. Options for the Python UDF. [Preview](https://cloud.google.com/products/#product-launch-stages)"
         },
         "remoteFunctionOptions": {
           "$ref": "RemoteFunctionOptions",
@@ -9039,12 +9231,12 @@
           "enum": [
             "MANAGED_TABLE_TYPE_UNSPECIFIED",
             "NATIVE",
-            "ICEBERG"
+            "BIGLAKE"
           ],
           "enumDescriptions": [
             "No managed table type specified.",
             "The managed table is a native BigQuery table.",
-            "The managed table is a BigQuery table for Apache Iceberg."
+            "The managed table is a BigLake table for Apache Iceberg in BigQuery."
           ],
           "type": "string"
         },
@@ -9430,7 +9622,7 @@
           "type": "string"
         },
         "dataPolicies": {
-          "description": "Optional. Data policy options, will replace the data_policies.",
+          "description": "Optional. Data policies attached to this field, used for field-level access control.",
           "items": {
             "$ref": "DataPolicyOption"
           },
