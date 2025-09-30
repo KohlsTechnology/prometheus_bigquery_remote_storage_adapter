@@ -131,6 +131,10 @@ You can configure this storage adapter either through command line options or en
 | `--web.listen-address` | `PROMBQ_LISTEN` | No | `:9201` | Address to listen on for web endpoints |
 | `--web.telemetry-path` | `PROMBQ_TELEMETRY` | No | `/metrics` | Address to listen on for web endpoints |
 | `--log.level` | `PROMBQ_LOG_LEVEL` | No | `info` | Only log messages with the given severity or above. One of: [debug, info, warn, error] |
+| `--tracing.enable` | `PROMBQ_TRACING_ENABLE` | No | `false` | Enable OpenTelemetry tracing |
+| `--tracing.exporter` | `PROMBQ_TRACING_EXPORTER` | No | `otlp-grpc` | Tracing exporter (otlp, otlp-grpc, otlp-http, jaeger, zipkin, stdout) |
+| `--tracing.endpoint` | `PROMBQ_TRACING_ENDPOINT` | No | Tracing endpoint URL |
+| `--tracing.service-name` | `PROMBQ_TRACING_SERVICE_NAME` | No | `prometheus-bigquery-adapter` | Service name for tracing |
 | `--log.format` | `PROMBQ_LOG_FORMAT` | No | `logfmt` | Output format of log messages. One of: [logfmt, json] |
 
 ## Configuring Prometheus
@@ -253,6 +257,66 @@ GCP_PROJECT_ID=my-awesome-project make bq-cleanup
 | `storage_bigquery_received_samples_total` | Counter | Total number of received samples. |
 | `storage_bigquery_sent_samples_total` | Counter | Total number of processed samples sent to remote storage that share the same description. |
 | `storage_bigquery_failed_samples_total` | Counter | Total number of processed samples which failed on send to remote storage that share the same description. |
+
+## OpenTelemetry Tracing
+
+The BigQuery Remote Storage Adapter supports OpenTelemetry tracing to help monitor and observe the application in production environments. You can configure tracing using the following command-line flags or environment variables:
+
+| Command Line Flag | Environment Variable | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `--tracing.enable` | `PROMBQ_TRACING_ENABLE` | No | `false` | Enable OpenTelemetry tracing |
+| `--tracing.exporter` | `PROMBQ_TRACING_EXPORTER` | No | `otlp-grpc` | Tracing exporter (otlp, otlp-grpc, otlp-http, jaeger, zipkin, stdout) |
+| `--tracing.endpoint` | `PROMBQ_TRACING_ENDPOINT` | No | | Tracing endpoint URL |
+| `--tracing.service-name` | `PROMBQ_TRACING_SERVICE_NAME` | No | `prometheus-bigquery-adapter` | Service name for tracing |
+
+### Example Configuration
+
+To enable tracing with an OTLP gRPC endpoint:
+
+```shell
+./bigquery_remote_storage_adapter \
+  --googleAPIjsonkeypath=/secret/gcp_service_account.json \
+  --googleAPIdatasetID=prometheus \
+  --googleAPItableID=metrics_stream \
+  --tracing.enable=true \
+  --tracing.exporter=otlp-grpc \
+  --tracing.endpoint=otel-collector:4317 \
+  --tracing.service-name=prometheus-bigquery-adapter
+```
+
+Or using environment variables:
+
+```shell
+PROMBQ_TRACING_ENABLE=true \
+PROMBQ_TRACING_EXPORTER=otlp-grpc \
+PROMBQ_TRACING_ENDPOINT=otel-collector:4317 \
+PROMBQ_TRACING_SERVICE_NAME=prometheus-bigquery-adapter \
+./bigquery_remote_storage_adapter \
+  --googleAPIjsonkeypath=/secret/gcp_service_account.json \
+  --googleAPIdatasetID=prometheus \
+  --googleAPItableID=metrics_stream
+```
+
+### Supported Tracing Backends
+
+The adapter supports several tracing backends through the OpenTelemetry protocol:
+
+- **OTLP gRPC** (`otlp-grpc`): OpenTelemetry Protocol over gRPC (default)
+- **OTLP HTTP** (`otlp-http`): OpenTelemetry Protocol over HTTP
+- **Jaeger** (`jaeger`): Compatible with Jaeger via OTLP
+- **Zipkin** (`zipkin`): Compatible with Zipkin via OTLP
+- **Console/Stdout** (`stdout`): Output traces to console for development
+
+### Tracing Spans
+
+When tracing is enabled, the adapter will create spans for:
+
+- HTTP requests to `/write` and `/read` endpoints
+- BigQuery write operations (`BigQuery.Write`)
+- BigQuery read operations (`BigQuery.Read`)
+- Query building operations (`BigQuery.buildCommand`)
+
+These spans include relevant attributes such as dataset ID, table ID, query parameters, and timing information to help with debugging and performance analysis.
 | `storage_bigquery_sent_batch_duration_seconds` | Histogram | Duration of sample batch send calls to the remote storage that share the same description. |
 | `storage_bigquery_write_errors_total` | Counter | Total number of write errors to BigQuery. |
 | `storage_bigquery_read_errors_total` | Counter | Total number of read errors from BigQuery |

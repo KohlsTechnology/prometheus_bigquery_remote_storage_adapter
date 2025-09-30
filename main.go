@@ -30,6 +30,7 @@ import (
 
 	"github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter/bigquerydb"
 	"github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter/pkg/version"
+	"github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter/tracing"
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/snappy"
 	"github.com/pkg/errors"
@@ -37,6 +38,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promslog"
 	"github.com/prometheus/prometheus/prompb"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -50,6 +52,10 @@ type config struct {
 	telemetryPath        string
 	promslogConfig       promslog.Config
 	printVersion         bool
+	enableTracing        bool
+	tracingExporter      string
+	tracingEndpoint      string
+	tracingServiceName   string
 }
 
 var (
@@ -125,9 +131,21 @@ func init() {
 func main() {
 	cfg := parseFlags()
 
-	http.Handle(cfg.telemetryPath, promhttp.Handler())
-
 	logger := promslog.New(&cfg.promslogConfig)
+
+	if cfg.enableTracing {
+		if err := tracing.InitTracing(cfg.tracingServiceName, cfg.tracingExporter, cfg.tracingEndpoint, logger); err != nil {
+			logger.Error("failed to initialize tracing", slog.Any("error", err))
+			os.Exit(1)
+		}
+		defer func() {
+			if err := tracing.ShutdownTracing(context.Background()); err != nil {
+				logger.Error("failed to shutdown tracing", slog.Any("error", err))
+			}
+		}()
+	}
+
+	http.Handle(cfg.telemetryPath, promhttp.Handler())
 
 	logger.Info(version.Get())
 
@@ -138,7 +156,11 @@ func main() {
 		slog.Any("googleAPItableID", cfg.googleAPItableID),
 		slog.Any("telemetryPath", cfg.telemetryPath),
 		slog.Any("listenAddr", cfg.listenAddr),
-		slog.Any("remoteTimeout", cfg.remoteTimeout))
+		slog.Any("remoteTimeout", cfg.remoteTimeout),
+		slog.Bool("tracing_enabled", cfg.enableTracing),
+		slog.String("tracing_exporter", cfg.tracingExporter),
+		slog.String("tracing_endpoint", cfg.tracingEndpoint),
+		slog.String("tracing_service_name", cfg.tracingServiceName))
 
 	writers, readers := buildClients(*logger, cfg)
 	serve(*logger, cfg.listenAddr, writers, readers)
@@ -175,6 +197,14 @@ func parseFlags() *config {
 	cfg.promslogConfig.Format = &promslog.Format{}
 	a.Flag("log.format", "Output format of log messages. One of: [logfmt, json]").
 		Envar("PROMBQ_LOG_FORMAT").Default("logfmt").SetValue(cfg.promslogConfig.Format)
+	a.Flag("tracing.enable", "Enable OpenTelemetry tracing").
+		Envar("PROMBQ_TRACING_ENABLE").Default("false").BoolVar(&cfg.enableTracing)
+	a.Flag("tracing.exporter", "Tracing exporter (otlp, otlp-grpc, otlp-http, jaeger, zipkin, stdout)").
+		Envar("PROMBQ_TRACING_EXPORTER").Default("otlp-grpc").StringVar(&cfg.tracingExporter)
+	a.Flag("tracing.endpoint", "Tracing endpoint URL").
+		Envar("PROMBQ_TRACING_ENDPOINT").StringVar(&cfg.tracingEndpoint)
+	a.Flag("tracing.service-name", "Service name for tracing").
+		Envar("PROMBQ_TRACING_SERVICE_NAME").Default("prometheus-bigquery-adapter").StringVar(&cfg.tracingServiceName)
 
 	_, err := a.Parse(os.Args[1:])
 
@@ -247,7 +277,8 @@ func serve(logger slog.Logger, addr string, writers []writer, readers []reader) 
 		close(idleConnectionClosed)
 		logger.Warn("http server shutdown, and connections closed")
 	}()
-	http.HandleFunc("/write", func(w http.ResponseWriter, r *http.Request) {
+
+	writeHandler := func(w http.ResponseWriter, r *http.Request) {
 		logger.Debug("write request received", slog.Any("method", r.Method), slog.Any("path", r.URL.Path))
 
 		begin := time.Now()
@@ -288,9 +319,9 @@ func serve(logger slog.Logger, addr string, writers []writer, readers []reader) 
 		writeProcessingDuration.WithLabelValues(writers[0].Name()).Observe(duration)
 
 		logger.Debug("write request completed", slog.Any("duration", duration))
-	})
+	}
 
-	http.HandleFunc("/read", func(w http.ResponseWriter, r *http.Request) {
+	readHandler := func(w http.ResponseWriter, r *http.Request) {
 		logger.Debug("read request receieved", slog.Any("method", r.Method), slog.Any("path", r.URL.Path))
 
 		begin := time.Now()
@@ -353,7 +384,10 @@ func serve(logger slog.Logger, addr string, writers []writer, readers []reader) 
 		duration := time.Since(begin).Seconds()
 		readProcessingDuration.WithLabelValues(writers[0].Name()).Observe(duration)
 		logger.Debug("read request completed", slog.Any("duration", duration))
-	})
+	}
+
+	http.HandleFunc("/write", otelhttp.NewHandler(http.HandlerFunc(writeHandler), "/write").ServeHTTP)
+	http.HandleFunc("/read", otelhttp.NewHandler(http.HandlerFunc(readHandler), "/read").ServeHTTP)
 
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		logger.Error("failed to listen", slog.Any("addr", addr), slog.Any("error", err))

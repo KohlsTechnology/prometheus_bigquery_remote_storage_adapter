@@ -26,11 +26,14 @@ import (
 	"time"
 
 	"cloud.google.com/go/bigquery"
+	"github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter/tracing"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/common/promslog"
 	"github.com/prometheus/prometheus/prompb"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
@@ -47,6 +50,7 @@ type BigqueryClient struct {
 	batchWriteDuration prometheus.Histogram
 	sqlQueryCount      prometheus.Counter
 	sqlQueryDuration   prometheus.Histogram
+	tracer             trace.Tracer
 }
 
 // NewClient creates a new Client.
@@ -124,6 +128,7 @@ func NewClient(logger *slog.Logger, googleAPIjsonkeypath, googleProjectID, googl
 				Help: "Duration of the sql reads from BigQuery.",
 			},
 		),
+		tracer: tracing.GetTracer("bigquerydb"),
 	}
 }
 
@@ -159,11 +164,21 @@ func tagsFromMetric(m model.Metric) string {
 
 // Write sends a batch of samples to BigQuery via the client.
 func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
+	ctx, span := c.tracer.Start(context.Background(), "BigQuery.Write")
+	defer span.End()
+
 	inserter := c.client.Dataset(c.datasetID).Table(c.tableID).Inserter()
 	inserter.SkipInvalidRows = true
-	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	writeCtx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 	batch := make([]*Item, 0, len(timeseries))
+
+	// Add attributes to the span about the number of timeseries
+	span.SetAttributes(
+		attribute.String("dataset.id", c.datasetID),
+		attribute.String("table.id", c.tableID),
+		attribute.Int("timeseries.count", len(timeseries)),
+	)
 
 	for i := range timeseries {
 		ts := timeseries[i]
@@ -194,10 +209,12 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 	}
 
 	begin := time.Now()
-	if err := inserter.Put(ctx, batch); err != nil {
+	if err := inserter.Put(writeCtx, batch); err != nil {
+		span.RecordError(err)
 		if multiError, ok := err.(bigquery.PutMultiError); ok {
 			for _, err1 := range multiError {
 				for _, err2 := range err1.Errors {
+					span.RecordError(err2)
 					fmt.Println(err2)
 				}
 			}
@@ -206,6 +223,7 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 	}
 	duration := time.Since(begin).Seconds()
 	c.batchWriteDuration.Observe(duration)
+	span.SetAttributes(attribute.Float64("duration.seconds", duration))
 
 	return nil
 }
@@ -235,30 +253,43 @@ func (c *BigqueryClient) Collect(ch chan<- prometheus.Metric) {
 
 // Read queries the database and returns the results to Prometheus
 func (c *BigqueryClient) Read(req *prompb.ReadRequest) (*prompb.ReadResponse, error) {
+	ctx, span := c.tracer.Start(context.Background(), "BigQuery.Read")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("dataset.id", c.datasetID),
+		attribute.String("table.id", c.tableID),
+		attribute.Int("queries.count", len(req.Queries)),
+	)
+
 	tsMap := map[model.Fingerprint]*prompb.TimeSeries{}
 	for _, q := range req.Queries {
 		command, err := c.buildCommand(q)
 		if err != nil {
+			span.RecordError(err)
 			return nil, err
 		}
 
 		query := c.client.Query(command)
-		ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+		queryCtx, cancel := context.WithTimeout(ctx, c.timeout)
 		c.sqlQueryCount.Inc()
 		begin := time.Now()
-		iter, err := query.Read(ctx)
+		iter, err := query.Read(queryCtx)
 		defer cancel()
 
 		if err != nil {
+			span.RecordError(err)
 			return nil, err
 		}
 
 		if err = mergeResult(tsMap, iter); err != nil {
+			span.RecordError(err)
 			return nil, err
 		}
 		duration := time.Since(begin).Seconds()
 		c.sqlQueryDuration.Observe(duration)
 		c.logger.Debug("bigquery sql query", slog.Any("rows", iter.TotalRows), slog.Any("duration", duration))
+		span.SetAttributes(attribute.Float64("query.duration.seconds", duration))
 	}
 
 	resp := prompb.ReadResponse{
@@ -274,6 +305,9 @@ func (c *BigqueryClient) Read(req *prompb.ReadRequest) (*prompb.ReadResponse, er
 
 // BuildCommand generates the proper SQL for the query
 func (c *BigqueryClient) buildCommand(q *prompb.Query) (string, error) {
+	_, span := c.tracer.Start(context.Background(), "BigQuery.buildCommand")
+	defer span.End()
+
 	matchers := make([]string, 0, len(q.Matchers))
 	for _, m := range q.Matchers {
 		// Metric Names
@@ -288,7 +322,9 @@ func (c *BigqueryClient) buildCommand(q *prompb.Query) (string, error) {
 			case prompb.LabelMatcher_NRE:
 				matchers = append(matchers, fmt.Sprintf("not REGEXP_CONTAINS(metricname, r'%s')", escapeSlashes(m.Value)))
 			default:
-				return "", errors.Errorf("unknown match type %v", m.Type)
+				err := errors.Errorf("unknown match type %v", m.Type)
+				span.RecordError(err)
+				return "", err
 			}
 			continue
 		}
@@ -304,7 +340,9 @@ func (c *BigqueryClient) buildCommand(q *prompb.Query) (string, error) {
 		case prompb.LabelMatcher_NRE:
 			matchers = append(matchers, fmt.Sprintf(`not REGEXP_CONTAINS(IFNULL(JSON_EXTRACT(tags, '$.%s'), '""'), r'"%s"')`, m.Name, m.Value))
 		default:
-			return "", errors.Errorf("unknown match type %v", m.Type)
+			err := errors.Errorf("unknown match type %v", m.Type)
+			span.RecordError(err)
+			return "", err
 		}
 	}
 	matchers = append(matchers, fmt.Sprintf("timestamp >= TIMESTAMP_MILLIS(%v)", q.StartTimestampMs))
@@ -312,6 +350,11 @@ func (c *BigqueryClient) buildCommand(q *prompb.Query) (string, error) {
 
 	query := fmt.Sprintf("SELECT metricname, tags, UNIX_MILLIS(timestamp) as timestamp, value FROM %s.%s WHERE %v ORDER BY timestamp", c.datasetID, c.tableID, strings.Join(matchers, " AND "))
 	c.logger.Debug("bigquery read", slog.Any("sql query", query))
+
+	span.SetAttributes(
+		attribute.Int("matchers.count", len(matchers)),
+		attribute.String("query", query),
+	)
 
 	return query, nil
 }
