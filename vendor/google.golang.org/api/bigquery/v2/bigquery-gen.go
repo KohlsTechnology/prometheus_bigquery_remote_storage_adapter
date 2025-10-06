@@ -553,6 +553,7 @@ type ArimaForecastingMetrics struct {
 	//   "MONTHLY" - Monthly period, 30 days or irregular.
 	//   "QUARTERLY" - Quarterly period, 90 days or irregular.
 	//   "YEARLY" - Yearly period, 365 days or irregular.
+	//   "HOURLY" - Hourly period, 1 hour.
 	SeasonalPeriods []string `json:"seasonalPeriods,omitempty"`
 	// TimeSeriesId: Id to differentiate different time series for the large-scale
 	// case.
@@ -606,6 +607,7 @@ type ArimaModelInfo struct {
 	//   "MONTHLY" - Monthly period, 30 days or irregular.
 	//   "QUARTERLY" - Quarterly period, 90 days or irregular.
 	//   "YEARLY" - Yearly period, 365 days or irregular.
+	//   "HOURLY" - Hourly period, 1 hour.
 	SeasonalPeriods []string `json:"seasonalPeriods,omitempty"`
 	// TimeSeriesId: The time_series_id value for this time series. It will be one
 	// of the unique values from the time_series_id_column specified during ARIMA
@@ -680,6 +682,7 @@ type ArimaResult struct {
 	//   "MONTHLY" - Monthly period, 30 days or irregular.
 	//   "QUARTERLY" - Quarterly period, 90 days or irregular.
 	//   "YEARLY" - Yearly period, 365 days or irregular.
+	//   "HOURLY" - Hourly period, 1 hour.
 	SeasonalPeriods []string `json:"seasonalPeriods,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ArimaModelInfo") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -729,6 +732,7 @@ type ArimaSingleModelForecastingMetrics struct {
 	//   "MONTHLY" - Monthly period, 30 days or irregular.
 	//   "QUARTERLY" - Quarterly period, 90 days or irregular.
 	//   "YEARLY" - Yearly period, 365 days or irregular.
+	//   "HOURLY" - Hourly period, 1 hour.
 	SeasonalPeriods []string `json:"seasonalPeriods,omitempty"`
 	// TimeSeriesId: The time_series_id value for this time series. It will be one
 	// of the unique values from the time_series_id_column specified during ARIMA
@@ -1902,18 +1906,30 @@ func (s CsvOptions) MarshalJSON() ([]byte, error) {
 
 // DataFormatOptions: Options for data format adjustments.
 type DataFormatOptions struct {
+	// TimestampOutputFormat: Optional. The API output format for a timestamp. This
+	// offers more explicit control over the timestamp output format as compared to
+	// the existing `use_int64_timestamp` option.
+	//
+	// Possible values:
+	//   "TIMESTAMP_OUTPUT_FORMAT_UNSPECIFIED" - Corresponds to default API output
+	// behavior, which is FLOAT64.
+	//   "FLOAT64" - Timestamp is output as float64 seconds since Unix epoch.
+	//   "INT64" - Timestamp is output as int64 microseconds since Unix epoch.
+	//   "ISO8601_STRING" - Timestamp is output as ISO 8601 String
+	// ("YYYY-MM-DDTHH:MM:SS.FFFFFFFFFFFFZ").
+	TimestampOutputFormat string `json:"timestampOutputFormat,omitempty"`
 	// UseInt64Timestamp: Optional. Output timestamp as usec int64. Default is
 	// false.
 	UseInt64Timestamp bool `json:"useInt64Timestamp,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "UseInt64Timestamp") to
+	// ForceSendFields is a list of field names (e.g. "TimestampOutputFormat") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "UseInt64Timestamp") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "TimestampOutputFormat") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
@@ -1946,8 +1962,9 @@ func (s DataMaskingStatistics) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// DataPolicyOption: Data policy option proto, it currently supports name only,
-// will support precedence later.
+// DataPolicyOption: Data policy option. For more information, see Mask data by
+// applying data policies to a column
+// (https://cloud.google.com/bigquery/docs/column-data-masking#data-policies-on-column/).
 type DataPolicyOption struct {
 	// Name: Data policy resource name in the form of
 	// projects/project_id/locations/location_id/dataPolicies/data_policy_id.
@@ -3392,6 +3409,62 @@ func (s ExternalDatasetReference) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
+// ExternalRuntimeOptions: Options for the runtime of the external system.
+type ExternalRuntimeOptions struct {
+	// ContainerCpu: Optional. Amount of CPU provisioned for a Python UDF container
+	// instance. For more information, see Configure container limits for Python
+	// UDFs
+	// (https://cloud.google.com/bigquery/docs/user-defined-functions-python#configure-container-limits)
+	ContainerCpu float64 `json:"containerCpu,omitempty"`
+	// ContainerMemory: Optional. Amount of memory provisioned for a Python UDF
+	// container instance. Format: {number}{unit} where unit is one of "M", "G",
+	// "Mi" and "Gi" (e.g. 1G, 512Mi). If not specified, the default value is
+	// 512Mi. For more information, see Configure container limits for Python UDFs
+	// (https://cloud.google.com/bigquery/docs/user-defined-functions-python#configure-container-limits)
+	ContainerMemory string `json:"containerMemory,omitempty"`
+	// MaxBatchingRows: Optional. Maximum number of rows in each batch sent to the
+	// external runtime. If absent or if 0, BigQuery dynamically decides the number
+	// of rows in a batch.
+	MaxBatchingRows int64 `json:"maxBatchingRows,omitempty,string"`
+	// RuntimeConnection: Optional. Fully qualified name of the connection whose
+	// service account will be used to execute the code in the container. Format:
+	// ``"projects/{project_id}/locations/{location_id}/connections/{connection_id}
+	// "``
+	RuntimeConnection string `json:"runtimeConnection,omitempty"`
+	// RuntimeVersion: Optional. Language runtime version. Example: `python-3.11`.
+	RuntimeVersion string `json:"runtimeVersion,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ContainerCpu") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ContainerCpu") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ExternalRuntimeOptions) MarshalJSON() ([]byte, error) {
+	type NoMethod ExternalRuntimeOptions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *ExternalRuntimeOptions) UnmarshalJSON(data []byte) error {
+	type NoMethod ExternalRuntimeOptions
+	var s1 struct {
+		ContainerCpu gensupport.JSONFloat64 `json:"containerCpu"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.ContainerCpu = float64(s1.ContainerCpu)
+	return nil
+}
+
 // ExternalServiceCost: The external service cost is a portion of the total
 // cost, these costs are not additive with total_bytes_billed. Moreover, this
 // field only track external service costs that will show up as BigQuery costs
@@ -3403,6 +3476,10 @@ func (s ExternalDatasetReference) MarshalJSON() ([]byte, error) {
 // dollars. Services may not directly correlate to these metrics, but these are
 // the equivalents for billing purposes. Output only.
 type ExternalServiceCost struct {
+	// BillingMethod: The billing method used for the external job. This field, set
+	// to `SERVICES_SKU`, is only used when billing under the services SKU.
+	// Otherwise, it is unspecified for backward compatibility.
+	BillingMethod string `json:"billingMethod,omitempty"`
 	// BytesBilled: External service cost in terms of bigquery bytes billed.
 	BytesBilled int64 `json:"bytesBilled,omitempty,string"`
 	// BytesProcessed: External service cost in terms of bigquery bytes processed.
@@ -3415,13 +3492,13 @@ type ExternalServiceCost struct {
 	ReservedSlotCount int64 `json:"reservedSlotCount,omitempty,string"`
 	// SlotMs: External service cost in terms of bigquery slot milliseconds.
 	SlotMs int64 `json:"slotMs,omitempty,string"`
-	// ForceSendFields is a list of field names (e.g. "BytesBilled") to
+	// ForceSendFields is a list of field names (e.g. "BillingMethod") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "BytesBilled") to include in API
+	// NullFields is a list of field names (e.g. "BillingMethod") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
@@ -3971,6 +4048,70 @@ func (s *HparamTuningTrial) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// IncrementalResultStats: Statistics related to Incremental Query Results.
+// Populated as part of JobStatistics2. This feature is not yet available.
+type IncrementalResultStats struct {
+	// DisabledReason: Reason why incremental query results are/were not written by
+	// the query.
+	//
+	// Possible values:
+	//   "DISABLED_REASON_UNSPECIFIED" - Disabled reason not specified.
+	//   "OTHER" - Some other reason.
+	DisabledReason string `json:"disabledReason,omitempty"`
+	// ResultSetLastModifyTime: The time at which the result table's contents were
+	// modified. May be absent if no results have been written or the query has
+	// completed.
+	ResultSetLastModifyTime string `json:"resultSetLastModifyTime,omitempty"`
+	// ResultSetLastReplaceTime: The time at which the result table's contents were
+	// completely replaced. May be absent if no results have been written or the
+	// query has completed.
+	ResultSetLastReplaceTime string `json:"resultSetLastReplaceTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DisabledReason") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DisabledReason") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s IncrementalResultStats) MarshalJSON() ([]byte, error) {
+	type NoMethod IncrementalResultStats
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// IndexPruningStats: Statistics for index pruning.
+type IndexPruningStats struct {
+	// BaseTable: The base table reference.
+	BaseTable *TableReference `json:"baseTable,omitempty"`
+	// PostIndexPruningParallelInputCount: The number of parallel inputs after
+	// index pruning.
+	PostIndexPruningParallelInputCount int64 `json:"postIndexPruningParallelInputCount,omitempty,string"`
+	// PreIndexPruningParallelInputCount: The number of parallel inputs before
+	// index pruning.
+	PreIndexPruningParallelInputCount int64 `json:"preIndexPruningParallelInputCount,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "BaseTable") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BaseTable") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s IndexPruningStats) MarshalJSON() ([]byte, error) {
+	type NoMethod IndexPruningStats
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
 // IndexUnusedReason: Reason about why no search index was used in the search
 // query (or sub-query).
 type IndexUnusedReason struct {
@@ -4016,6 +4157,11 @@ type IndexUnusedReason struct {
 	//   "ESTIMATED_PERFORMANCE_GAIN_TOO_LOW" - Indicates that the estimated
 	// performance gain from using the search index is too low for the given search
 	// query.
+	//   "COLUMN_METADATA_INDEX_NOT_USED" - Indicates that the column metadata
+	// index (which the search index depends on) is not used. User can refer to the
+	// [column metadata index
+	// usage](https://cloud.google.com/bigquery/docs/metadata-indexing-managed-table
+	// s#view_column_metadata_index_usage) for more details on why it was not used.
 	//   "NOT_SUPPORTED_IN_STANDARD_EDITION" - Indicates that search indexes can
 	// not be used for search query with STANDARD edition.
 	//   "INDEX_SUPPRESSED_BY_FUNCTION_OPTION" - Indicates that an option in the
@@ -4264,8 +4410,7 @@ type Job struct {
 	Etag string `json:"etag,omitempty"`
 	// Id: Output only. Opaque ID field of the job.
 	Id string `json:"id,omitempty"`
-	// JobCreationReason: Output only. The reason why a Job was created. Preview
-	// (https://cloud.google.com/products/#product-launch-stages)
+	// JobCreationReason: Output only. The reason why a Job was created.
 	JobCreationReason *JobCreationReason `json:"jobCreationReason,omitempty"`
 	// JobReference: Optional. Reference describing the unique-per-user name of the
 	// job.
@@ -4344,11 +4489,11 @@ type JobConfiguration struct {
 	DryRun bool `json:"dryRun,omitempty"`
 	// Extract: [Pick one] Configures an extract job.
 	Extract *JobConfigurationExtract `json:"extract,omitempty"`
-	// JobTimeoutMs: Optional. Job timeout in milliseconds. If this time limit is
-	// exceeded, BigQuery will attempt to stop a longer job, but may not always
-	// succeed in canceling it before the job completes. For example, a job that
-	// takes more than 60 seconds to complete has a better chance of being stopped
-	// than a job that takes 10 seconds to complete.
+	// JobTimeoutMs: Optional. Job timeout in milliseconds relative to the job
+	// creation time. If this time limit is exceeded, BigQuery attempts to stop the
+	// job, but might not always succeed in canceling it before the job completes.
+	// For example, a job that takes more than 60 seconds to complete has a better
+	// chance of being stopped than a job that takes 10 seconds to complete.
 	JobTimeoutMs int64 `json:"jobTimeoutMs,omitempty,string"`
 	// JobType: Output only. The type of the job. Can be QUERY, LOAD, EXTRACT, COPY
 	// or UNKNOWN.
@@ -4362,6 +4507,11 @@ type JobConfiguration struct {
 	Labels map[string]string `json:"labels,omitempty"`
 	// Load: [Pick one] Configures a load job.
 	Load *JobConfigurationLoad `json:"load,omitempty"`
+	// MaxSlots: Optional. INTERNAL: DO NOT USE. The maximum rate of slot
+	// consumption to allow for this job. If set, the number of slots used to
+	// execute the job will be throttled to try and keep its slot consumption below
+	// the requested rate.
+	MaxSlots int64 `json:"maxSlots,omitempty"`
 	// Query: [Pick one] Configures a query job.
 	Query *JobConfigurationQuery `json:"query,omitempty"`
 	// Reservation: Optional. The reservation that job would use. User can specify
@@ -4678,13 +4828,14 @@ type JobConfigurationLoad struct {
 	// SchemaUpdateOptions: Allows the schema of the destination table to be
 	// updated as a side effect of the load job if a schema is autodetected or
 	// supplied in the job configuration. Schema update options are supported in
-	// two cases: when writeDisposition is WRITE_APPEND; when writeDisposition is
-	// WRITE_TRUNCATE and the destination table is a partition of a table,
-	// specified by partition decorators. For normal tables, WRITE_TRUNCATE will
-	// always overwrite the schema. One or more of the following values are
-	// specified: * ALLOW_FIELD_ADDITION: allow adding a nullable field to the
-	// schema. * ALLOW_FIELD_RELAXATION: allow relaxing a required field in the
-	// original schema to nullable.
+	// three cases: when writeDisposition is WRITE_APPEND; when writeDisposition is
+	// WRITE_TRUNCATE_DATA; when writeDisposition is WRITE_TRUNCATE and the
+	// destination table is a partition of a table, specified by partition
+	// decorators. For normal tables, WRITE_TRUNCATE will always overwrite the
+	// schema. One or more of the following values are specified: *
+	// ALLOW_FIELD_ADDITION: allow adding a nullable field to the schema. *
+	// ALLOW_FIELD_RELAXATION: allow relaxing a required field in the original
+	// schema to nullable.
 	SchemaUpdateOptions []string `json:"schemaUpdateOptions,omitempty"`
 	// SkipLeadingRows: Optional. The number of rows at the top of a CSV file that
 	// BigQuery will skip when loading the data. The default value is 0. This
@@ -4868,13 +5019,14 @@ type JobConfigurationQuery struct {
 	RangePartitioning *RangePartitioning `json:"rangePartitioning,omitempty"`
 	// SchemaUpdateOptions: Allows the schema of the destination table to be
 	// updated as a side effect of the query job. Schema update options are
-	// supported in two cases: when writeDisposition is WRITE_APPEND; when
-	// writeDisposition is WRITE_TRUNCATE and the destination table is a partition
-	// of a table, specified by partition decorators. For normal tables,
-	// WRITE_TRUNCATE will always overwrite the schema. One or more of the
-	// following values are specified: * ALLOW_FIELD_ADDITION: allow adding a
-	// nullable field to the schema. * ALLOW_FIELD_RELAXATION: allow relaxing a
-	// required field in the original schema to nullable.
+	// supported in three cases: when writeDisposition is WRITE_APPEND; when
+	// writeDisposition is WRITE_TRUNCATE_DATA; when writeDisposition is
+	// WRITE_TRUNCATE and the destination table is a partition of a table,
+	// specified by partition decorators. For normal tables, WRITE_TRUNCATE will
+	// always overwrite the schema. One or more of the following values are
+	// specified: * ALLOW_FIELD_ADDITION: allow adding a nullable field to the
+	// schema. * ALLOW_FIELD_RELAXATION: allow relaxing a required field in the
+	// original schema to nullable.
 	SchemaUpdateOptions []string `json:"schemaUpdateOptions,omitempty"`
 	// ScriptOptions: Options controlling the execution of scripts.
 	ScriptOptions *ScriptOptions `json:"scriptOptions,omitempty"`
@@ -5019,8 +5171,7 @@ func (s JobConfigurationTableCopy) MarshalJSON() ([]byte, error) {
 // (https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/query) method
 // when used with `JOB_CREATION_OPTIONAL` Job creation mode. For `jobs.insert`
 // (https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/insert)
-// method calls it will always be `REQUESTED`. Preview
-// (https://cloud.google.com/products/#product-launch-stages)
+// method calls it will always be `REQUESTED`.
 type JobCreationReason struct {
 	// Code: Output only. Specifies the high level reason why a Job was created.
 	//
@@ -5351,6 +5502,9 @@ type JobStatistics2 struct {
 	// ExternalServiceCosts: Output only. Job cost breakdown as bigquery internal
 	// cost and external service costs.
 	ExternalServiceCosts []*ExternalServiceCost `json:"externalServiceCosts,omitempty"`
+	// IncrementalResultStats: Output only. Statistics related to incremental query
+	// results, if enabled for the query. This feature is not yet available.
+	IncrementalResultStats *IncrementalResultStats `json:"incrementalResultStats,omitempty"`
 	// LoadQueryStatistics: Output only. Statistics for a LOAD query.
 	LoadQueryStatistics *LoadQueryStatistics `json:"loadQueryStatistics,omitempty"`
 	// MaterializedViewStatistics: Output only. Statistics of materialized views of
@@ -5496,6 +5650,11 @@ type JobStatistics2 struct {
 	// TotalPartitionsProcessed: Output only. Total number of partitions processed
 	// from all partitioned tables referenced in the job.
 	TotalPartitionsProcessed int64 `json:"totalPartitionsProcessed,omitempty,string"`
+	// TotalServicesSkuSlotMs: Output only. Total slot milliseconds for the job
+	// that ran on external services and billed on the services SKU. This field is
+	// only populated for jobs that have external service costs, and is the total
+	// of the usage for costs whose billing method is "SERVICES_SKU".
+	TotalServicesSkuSlotMs int64 `json:"totalServicesSkuSlotMs,omitempty,string"`
 	// TotalSlotMs: Output only. Slot-milliseconds for the job.
 	TotalSlotMs int64 `json:"totalSlotMs,omitempty,string"`
 	// TransferredBytes: Output only. Total bytes transferred for cross-cloud
@@ -6864,6 +7023,62 @@ func (s ProjectReference) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
+// PruningStats: The column metadata index pruning statistics.
+type PruningStats struct {
+	// PostCmetaPruningParallelInputCount: The number of parallel inputs matched.
+	PostCmetaPruningParallelInputCount int64 `json:"postCmetaPruningParallelInputCount,omitempty,string"`
+	// PostCmetaPruningPartitionCount: The number of partitions matched.
+	PostCmetaPruningPartitionCount int64 `json:"postCmetaPruningPartitionCount,omitempty,string"`
+	// PreCmetaPruningParallelInputCount: The number of parallel inputs scanned.
+	PreCmetaPruningParallelInputCount int64 `json:"preCmetaPruningParallelInputCount,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g.
+	// "PostCmetaPruningParallelInputCount") to unconditionally include in API
+	// requests. By default, fields with empty or default values are omitted from
+	// API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g.
+	// "PostCmetaPruningParallelInputCount") to include in API requests with the
+	// JSON null value. By default, fields with empty values are omitted from API
+	// requests. See https://pkg.go.dev/google.golang.org/api#hdr-NullFields for
+	// more details.
+	NullFields []string `json:"-"`
+}
+
+func (s PruningStats) MarshalJSON() ([]byte, error) {
+	type NoMethod PruningStats
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// PythonOptions: Options for a user-defined Python function.
+type PythonOptions struct {
+	// EntryPoint: Required. The name of the function defined in Python code as the
+	// entry point when the Python UDF is invoked.
+	EntryPoint string `json:"entryPoint,omitempty"`
+	// Packages: Optional. A list of Python package names along with versions to be
+	// installed. Example: ["pandas>=2.1", "google-cloud-translate==3.11"]. For
+	// more information, see Use third-party packages
+	// (https://cloud.google.com/bigquery/docs/user-defined-functions-python#third-party-packages).
+	Packages []string `json:"packages,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EntryPoint") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EntryPoint") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s PythonOptions) MarshalJSON() ([]byte, error) {
+	type NoMethod PythonOptions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
 // QueryInfo: Query optimization information for a QUERY job.
 type QueryInfo struct {
 	// OptimizationDetails: Output only. Information about query optimizations.
@@ -6923,6 +7138,13 @@ type QueryParameterType struct {
 	// StructTypes: Optional. The types of the fields of this struct, in order, if
 	// this is a struct.
 	StructTypes []*QueryParameterTypeStructTypes `json:"structTypes,omitempty"`
+	// TimestampPrecision: Optional. Precision (maximum number of total digits in
+	// base 10) for seconds of TIMESTAMP type. Possible values include: * 6
+	// (Default, for TIMESTAMP type with microsecond precision) * 12 (For TIMESTAMP
+	// type with picosecond precision)
+	//
+	// Default: 6
+	TimestampPrecision *int64 `json:"timestampPrecision,omitempty,string"`
 	// Type: Required. The top level type of this field.
 	Type string `json:"type,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ArrayType") to
@@ -7027,8 +7249,7 @@ type QueryRequest struct {
 	// FormatOptions: Optional. Output format adjustments.
 	FormatOptions *DataFormatOptions `json:"formatOptions,omitempty"`
 	// JobCreationMode: Optional. If not set, jobs are always required. If set, the
-	// query request will follow the behavior described JobCreationMode. Preview
-	// (https://cloud.google.com/products/#product-launch-stages)
+	// query request will follow the behavior described JobCreationMode.
 	//
 	// Possible values:
 	//   "JOB_CREATION_MODE_UNSPECIFIED" - If unspecified JOB_CREATION_REQUIRED is
@@ -7066,6 +7287,11 @@ type QueryRequest struct {
 	// large. In addition to this limit, responses are also limited to 10 MB. By
 	// default, there is no maximum row count, and only the byte limit applies.
 	MaxResults int64 `json:"maxResults,omitempty"`
+	// MaxSlots: Optional. INTERNAL: DO NOT USE. The maximum rate of slot
+	// consumption to allow for this job. If set, the number of slots used to
+	// execute the job will be throttled to try and keep its slot consumption below
+	// the requested rate. This limit is best effort.
+	MaxSlots int64 `json:"maxSlots,omitempty"`
 	// MaximumBytesBilled: Optional. Limits the bytes billed for this query.
 	// Queries with bytes billed above this limit will fail (without incurring a
 	// charge). If unspecified, the project default is used.
@@ -7180,8 +7406,7 @@ type QueryResponse struct {
 	JobComplete bool `json:"jobComplete,omitempty"`
 	// JobCreationReason: Optional. The reason why a Job was created. Only relevant
 	// when a job_reference is present in the response. If job_reference is not
-	// present it will always be unset. Preview
-	// (https://cloud.google.com/products/#product-launch-stages)
+	// present it will always be unset.
 	JobCreationReason *JobCreationReason `json:"jobCreationReason,omitempty"`
 	// JobReference: Reference to the Job that was created to run the query. This
 	// field will be present even if the original request timed out, in which case
@@ -7207,8 +7432,7 @@ type QueryResponse struct {
 	// method. For more information, see Paging through table data
 	// (https://cloud.google.com/bigquery/docs/paging-results).
 	PageToken string `json:"pageToken,omitempty"`
-	// QueryId: Auto-generated ID for the query. Preview
-	// (https://cloud.google.com/products/#product-launch-stages)
+	// QueryId: Auto-generated ID for the query.
 	QueryId string `json:"queryId,omitempty"`
 	// Rows: An object with as many results as can be contained within the maximum
 	// permitted reply size. To get any additional rows, you can call
@@ -7643,15 +7867,17 @@ type Routine struct {
 	//   "DATA_MASKING" - The data governance type is data masking.
 	DataGovernanceType string `json:"dataGovernanceType,omitempty"`
 	// DefinitionBody: Required. The body of the routine. For functions, this is
-	// the expression in the AS clause. If language=SQL, it is the substring inside
-	// (but excluding) the parentheses. For example, for the function created with
-	// the following statement: `CREATE FUNCTION JoinLines(x string, y string) as
-	// (concat(x, "\n", y))` The definition_body is `concat(x, "\n", y)` (\n is not
-	// replaced with linebreak). If language=JAVASCRIPT, it is the evaluated string
-	// in the AS clause. For example, for the function created with the following
-	// statement: `CREATE FUNCTION f() RETURNS STRING LANGUAGE js AS 'return
-	// "\n";\n'` The definition_body is `return "\n";\n` Note that both \n are
-	// replaced with linebreaks.
+	// the expression in the AS clause. If `language = "SQL", it is the substring
+	// inside (but excluding) the parentheses. For example, for the function
+	// created with the following statement: `CREATE FUNCTION JoinLines(x string, y
+	// string) as (concat(x, "\n", y))` The definition_body is `concat(x, "\n", y)`
+	// (\n is not replaced with linebreak). If `language="JAVASCRIPT", it is the
+	// evaluated string in the AS clause. For example, for the function created
+	// with the following statement: `CREATE FUNCTION f() RETURNS STRING LANGUAGE
+	// js AS 'return "\n";\n'` The definition_body is `return "\n";\n` Note that
+	// both \n are replaced with linebreaks. If `definition_body` references
+	// another routine, then that routine must be fully qualified with its project
+	// ID.
 	DefinitionBody string `json:"definitionBody,omitempty"`
 	// Description: Optional. The description of the routine, if defined.
 	Description string `json:"description,omitempty"`
@@ -7668,6 +7894,10 @@ type Routine struct {
 	DeterminismLevel string `json:"determinismLevel,omitempty"`
 	// Etag: Output only. A hash of this resource.
 	Etag string `json:"etag,omitempty"`
+	// ExternalRuntimeOptions: Optional. Options for the runtime of the external
+	// system executing the routine. This field is only applicable for Python UDFs.
+	// Preview (https://cloud.google.com/products/#product-launch-stages)
+	ExternalRuntimeOptions *ExternalRuntimeOptions `json:"externalRuntimeOptions,omitempty"`
 	// ImportedLibraries: Optional. If language = "JAVASCRIPT", this field stores
 	// the path of the imported JAVASCRIPT libraries.
 	ImportedLibraries []string `json:"importedLibraries,omitempty"`
@@ -7685,6 +7915,9 @@ type Routine struct {
 	// LastModifiedTime: Output only. The time when this routine was last modified,
 	// in milliseconds since the epoch.
 	LastModifiedTime int64 `json:"lastModifiedTime,omitempty,string"`
+	// PythonOptions: Optional. Options for the Python UDF. Preview
+	// (https://cloud.google.com/products/#product-launch-stages)
+	PythonOptions *PythonOptions `json:"pythonOptions,omitempty"`
 	// RemoteFunctionOptions: Optional. Remote function specific options.
 	RemoteFunctionOptions *RemoteFunctionOptions `json:"remoteFunctionOptions,omitempty"`
 	// ReturnTableType: Optional. Can be set only if routine_type =
@@ -8047,6 +8280,11 @@ func (s ScriptStatistics) MarshalJSON() ([]byte, error) {
 // SearchStatistics: Statistics for a search query. Populated as part of
 // JobStatistics2.
 type SearchStatistics struct {
+	// IndexPruningStats: Search index pruning statistics, one for each base table
+	// that has a search index. If a base table does not have a search index or the
+	// index does not help with pruning on the base table, then there is no pruning
+	// statistics for that table.
+	IndexPruningStats []*IndexPruningStats `json:"indexPruningStats,omitempty"`
 	// IndexUnusedReasons: When `indexUsageMode` is `UNUSED` or `PARTIALLY_USED`,
 	// this field explains why indexes were not used in all or part of the search
 	// query. If `indexUsageMode` is `FULLY_USED`, this field is not populated.
@@ -8065,15 +8303,15 @@ type SearchStatistics struct {
 	// of the query did not use search indexes.
 	//   "FULLY_USED" - The entire search query used search indexes.
 	IndexUsageMode string `json:"indexUsageMode,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "IndexUnusedReasons") to
+	// ForceSendFields is a list of field names (e.g. "IndexPruningStats") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "IndexUnusedReasons") to include
-	// in API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "IndexPruningStats") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
@@ -8810,7 +9048,8 @@ type Table struct {
 	// Possible values:
 	//   "MANAGED_TABLE_TYPE_UNSPECIFIED" - No managed table type specified.
 	//   "NATIVE" - The managed table is a native BigQuery table.
-	//   "ICEBERG" - The managed table is a BigQuery table for Apache Iceberg.
+	//   "BIGLAKE" - The managed table is a BigLake table for Apache Iceberg in
+	// BigQuery.
 	ManagedTableType string `json:"managedTableType,omitempty"`
 	// MaterializedView: Optional. The materialized view definition.
 	MaterializedView *MaterializedViewDefinition `json:"materializedView,omitempty"`
@@ -9262,7 +9501,8 @@ type TableFieldSchema struct {
 	// locale, case insensitive. * '': empty string. Default to case-sensitive
 	// behavior.
 	Collation string `json:"collation,omitempty"`
-	// DataPolicies: Optional. Data policy options, will replace the data_policies.
+	// DataPolicies: Optional. Data policies attached to this field, used for
+	// field-level access control.
 	DataPolicies []*DataPolicyOption `json:"dataPolicies,omitempty"`
 	// DefaultValueExpression: Optional. A SQL expression to specify the [default
 	// value] (https://cloud.google.com/bigquery/docs/default-values) for this
@@ -9332,6 +9572,13 @@ type TableFieldSchema struct {
 	RoundingMode string `json:"roundingMode,omitempty"`
 	// Scale: Optional. See documentation for precision.
 	Scale int64 `json:"scale,omitempty,string"`
+	// TimestampPrecision: Optional. Precision (maximum number of total digits in
+	// base 10) for seconds of TIMESTAMP type. Possible values include: * 6
+	// (Default, for TIMESTAMP type with microsecond precision) * 12 (For TIMESTAMP
+	// type with picosecond precision)
+	//
+	// Default: 6
+	TimestampPrecision *int64 `json:"timestampPrecision,omitempty,string"`
 	// Type: Required. The field data type. Possible values include: * STRING *
 	// BYTES * INTEGER (or INT64) * FLOAT (or FLOAT64) * BOOLEAN (or BOOL) *
 	// TIMESTAMP * DATE * TIME * DATETIME * GEOGRAPHY * NUMERIC * BIGNUMERIC * JSON
@@ -9544,6 +9791,8 @@ type TableMetadataCacheUsage struct {
 	// Explanation: Free form human-readable reason metadata caching was unused for
 	// the job.
 	Explanation string `json:"explanation,omitempty"`
+	// PruningStats: The column metadata index pruning statistics.
+	PruningStats *PruningStats `json:"pruningStats,omitempty"`
 	// Staleness: Duration since last refresh as of this job for managed tables
 	// (indicates metadata cache staleness as seen by this job).
 	Staleness string `json:"staleness,omitempty"`
@@ -9930,6 +10179,9 @@ type TrainingOptions struct {
 	EarlyStop bool `json:"earlyStop,omitempty"`
 	// EnableGlobalExplain: If true, enable global explanation during training.
 	EnableGlobalExplain bool `json:"enableGlobalExplain,omitempty"`
+	// EndpointIdleTtl: The idle TTL of the endpoint before the resources get
+	// destroyed. The default value is 6.5 hours.
+	EndpointIdleTtl string `json:"endpointIdleTtl,omitempty"`
 	// FeedbackType: Feedback type that specifies which algorithm to run for matrix
 	// factorization.
 	//
@@ -10139,6 +10391,9 @@ type TrainingOptions struct {
 	// Gain.
 	//   "AVERAGE_RANK" - Average Rank.
 	HparamTuningObjectives []string `json:"hparamTuningObjectives,omitempty"`
+	// HuggingFaceModelId: The id of a Hugging Face model. For example,
+	// `google/gemma-2-2b-it`.
+	HuggingFaceModelId string `json:"huggingFaceModelId,omitempty"`
 	// IncludeDrift: Include drift when fitting an ARIMA model.
 	IncludeDrift bool `json:"includeDrift,omitempty"`
 	// InitialLearnRate: Specifies the initial learning rate for the line search
@@ -10198,11 +10453,16 @@ type TrainingOptions struct {
 	//   "MEAN_SQUARED_LOSS" - Mean squared loss, used for linear regression.
 	//   "MEAN_LOG_LOSS" - Mean log loss, used for logistic regression.
 	LossType string `json:"lossType,omitempty"`
+	// MachineType: The type of the machine used to deploy and serve the model.
+	MachineType string `json:"machineType,omitempty"`
 	// MaxIterations: The maximum number of iterations in training. Used only for
 	// iterative training algorithms.
 	MaxIterations int64 `json:"maxIterations,omitempty,string"`
 	// MaxParallelTrials: Maximum number of trials to run in parallel.
 	MaxParallelTrials int64 `json:"maxParallelTrials,omitempty,string"`
+	// MaxReplicaCount: The maximum number of machine replicas that will be
+	// deployed on an endpoint. The default value is equal to min_replica_count.
+	MaxReplicaCount int64 `json:"maxReplicaCount,omitempty,string"`
 	// MaxTimeSeriesLength: The maximum number of time points in a time series that
 	// can be used in modeling the trend component of the time series. Don't use
 	// this option with the `timeSeriesLengthFraction` or `minTimeSeriesLength`
@@ -10217,6 +10477,10 @@ type TrainingOptions struct {
 	// improvement is less than 'min_relative_progress'. Used only for iterative
 	// training algorithms.
 	MinRelativeProgress float64 `json:"minRelativeProgress,omitempty"`
+	// MinReplicaCount: The minimum number of machine replicas that will be always
+	// deployed on an endpoint. This value must be greater than or equal to 1. The
+	// default value is 1.
+	MinReplicaCount int64 `json:"minReplicaCount,omitempty,string"`
 	// MinSplitLoss: Minimum split loss for boosted tree models.
 	MinSplitLoss float64 `json:"minSplitLoss,omitempty"`
 	// MinTimeSeriesLength: The minimum number of time points in a time series that
@@ -10231,6 +10495,9 @@ type TrainingOptions struct {
 	// MinTreeChildWeight: Minimum sum of instance weight needed in a child for
 	// boosted tree models.
 	MinTreeChildWeight int64 `json:"minTreeChildWeight,omitempty,string"`
+	// ModelGardenModelName: The name of a Vertex model garden publisher model.
+	// Format is `publishers/{publisher}/models/{model}@{optional_version_id}`.
+	ModelGardenModelName string `json:"modelGardenModelName,omitempty"`
 	// ModelRegistry: The model registry.
 	//
 	// Possible values:
@@ -10279,6 +10546,24 @@ type TrainingOptions struct {
 	//   "RANDOMIZED" - Randomized SVD.
 	//   "AUTO" - Auto.
 	PcaSolver string `json:"pcaSolver,omitempty"`
+	// ReservationAffinityKey: Corresponds to the label key of a reservation
+	// resource used by Vertex AI. To target a SPECIFIC_RESERVATION by name, use
+	// `compute.googleapis.com/reservation-name` as the key and specify the name of
+	// your reservation as its value.
+	ReservationAffinityKey string `json:"reservationAffinityKey,omitempty"`
+	// ReservationAffinityType: Specifies the reservation affinity type used to
+	// configure a Vertex AI resource. The default value is `NO_RESERVATION`.
+	//
+	// Possible values:
+	//   "RESERVATION_AFFINITY_TYPE_UNSPECIFIED" - Default value.
+	//   "NO_RESERVATION" - No reservation.
+	//   "ANY_RESERVATION" - Any reservation.
+	//   "SPECIFIC_RESERVATION" - Specific reservation.
+	ReservationAffinityType string `json:"reservationAffinityType,omitempty"`
+	// ReservationAffinityValues: Corresponds to the label values of a reservation
+	// resource used by Vertex AI. This must be the full resource name of the
+	// reservation or reservation block.
+	ReservationAffinityValues []string `json:"reservationAffinityValues,omitempty"`
 	// SampledShapleyNumPaths: Number of paths for the sampled Shapley explain
 	// method.
 	SampledShapleyNumPaths int64 `json:"sampledShapleyNumPaths,omitempty,string"`
@@ -10789,15 +11074,15 @@ func (c *DatasetsGetCall) AccessPolicyVersion(accessPolicyVersion int64) *Datase
 // Possible values:
 //
 //	"DATASET_VIEW_UNSPECIFIED" - The default value. Default to the FULL view.
-//	"METADATA" - Updates metadata information for the dataset, such as
+//	"METADATA" - View metadata information for the dataset, such as
 //
 // friendlyName, description, labels, etc.
 //
-//	"ACL" - Updates ACL information for the dataset, which defines dataset
+//	"ACL" - View ACL information for the dataset, which defines dataset access
 //
-// access for one or more entities.
+// for one or more entities.
 //
-//	"FULL" - Updates both dataset metadata and ACL information.
+//	"FULL" - View both dataset metadata and ACL information.
 func (c *DatasetsGetCall) DatasetView(datasetView string) *DatasetsGetCall {
 	c.urlParams_.Set("datasetView", datasetView)
 	return c
@@ -11938,6 +12223,27 @@ func (r *JobsService) GetQueryResults(projectId string, jobId string) *JobsGetQu
 	c := &JobsGetQueryResultsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.projectId = projectId
 	c.jobId = jobId
+	return c
+}
+
+// FormatOptionsTimestampOutputFormat sets the optional parameter
+// "formatOptions.timestampOutputFormat": The API output format for a
+// timestamp. This offers more explicit control over the timestamp output
+// format as compared to the existing `use_int64_timestamp` option.
+//
+// Possible values:
+//
+//	"TIMESTAMP_OUTPUT_FORMAT_UNSPECIFIED" - Corresponds to default API output
+//
+// behavior, which is FLOAT64.
+//
+//	"FLOAT64" - Timestamp is output as float64 seconds since Unix epoch.
+//	"INT64" - Timestamp is output as int64 microseconds since Unix epoch.
+//	"ISO8601_STRING" - Timestamp is output as ISO 8601 String
+//
+// ("YYYY-MM-DDTHH:MM:SS.FFFFFFFFFFFFZ").
+func (c *JobsGetQueryResultsCall) FormatOptionsTimestampOutputFormat(formatOptionsTimestampOutputFormat string) *JobsGetQueryResultsCall {
+	c.urlParams_.Set("formatOptions.timestampOutputFormat", formatOptionsTimestampOutputFormat)
 	return c
 }
 
@@ -14001,6 +14307,117 @@ func (c *RoutinesSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, er
 	return ret, nil
 }
 
+type RoutinesTestIamPermissionsCall struct {
+	s                         *Service
+	resource                  string
+	testiampermissionsrequest *TestIamPermissionsRequest
+	urlParams_                gensupport.URLParams
+	ctx_                      context.Context
+	header_                   http.Header
+}
+
+// TestIamPermissions: Returns permissions that a caller has on the specified
+// resource. If the resource does not exist, this will return an empty set of
+// permissions, not a `NOT_FOUND` error. Note: This operation is designed to be
+// used for building permission-aware UIs and command-line tools, not for
+// authorization checking. This operation may "fail open" without warning.
+//
+//   - resource: REQUIRED: The resource for which the policy detail is being
+//     requested. See Resource names
+//     (https://cloud.google.com/apis/design/resource_names) for the appropriate
+//     value for this field.
+func (r *RoutinesService) TestIamPermissions(resource string, testiampermissionsrequest *TestIamPermissionsRequest) *RoutinesTestIamPermissionsCall {
+	c := &RoutinesTestIamPermissionsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.resource = resource
+	c.testiampermissionsrequest = testiampermissionsrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *RoutinesTestIamPermissionsCall) Fields(s ...googleapi.Field) *RoutinesTestIamPermissionsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *RoutinesTestIamPermissionsCall) Context(ctx context.Context) *RoutinesTestIamPermissionsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *RoutinesTestIamPermissionsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *RoutinesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "{+resource}:testIamPermissions")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"resource": c.resource,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquery.routines.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "bigquery.routines.testIamPermissions" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *TestIamPermissionsResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *RoutinesTestIamPermissionsCall) Do(opts ...googleapi.CallOption) (*TestIamPermissionsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &TestIamPermissionsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquery.routines.testIamPermissions", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
 type RoutinesUpdateCall struct {
 	s          *Service
 	projectId  string
@@ -15148,6 +15565,27 @@ func (r *TabledataService) List(projectId string, datasetId string, tableId stri
 	c.projectId = projectId
 	c.datasetId = datasetId
 	c.tableId = tableId
+	return c
+}
+
+// FormatOptionsTimestampOutputFormat sets the optional parameter
+// "formatOptions.timestampOutputFormat": The API output format for a
+// timestamp. This offers more explicit control over the timestamp output
+// format as compared to the existing `use_int64_timestamp` option.
+//
+// Possible values:
+//
+//	"TIMESTAMP_OUTPUT_FORMAT_UNSPECIFIED" - Corresponds to default API output
+//
+// behavior, which is FLOAT64.
+//
+//	"FLOAT64" - Timestamp is output as float64 seconds since Unix epoch.
+//	"INT64" - Timestamp is output as int64 microseconds since Unix epoch.
+//	"ISO8601_STRING" - Timestamp is output as ISO 8601 String
+//
+// ("YYYY-MM-DDTHH:MM:SS.FFFFFFFFFFFFZ").
+func (c *TabledataListCall) FormatOptionsTimestampOutputFormat(formatOptionsTimestampOutputFormat string) *TabledataListCall {
+	c.urlParams_.Set("formatOptions.timestampOutputFormat", formatOptionsTimestampOutputFormat)
 	return c
 }
 
