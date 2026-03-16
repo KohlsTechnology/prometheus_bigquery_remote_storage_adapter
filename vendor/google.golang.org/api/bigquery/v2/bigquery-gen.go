@@ -1,4 +1,4 @@
-// Copyright 2025 Google LLC.
+// Copyright 2026 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -1051,9 +1051,11 @@ type BigtableColumn struct {
 	// Encoding: Optional. The encoding of the values when the type is not STRING.
 	// Acceptable encoding values are: TEXT - indicates values are alphanumeric
 	// text strings. BINARY - indicates values are encoded using HBase
-	// Bytes.toBytes family of functions. 'encoding' can also be set at the column
-	// family level. However, the setting at this level takes precedence if
-	// 'encoding' is set at both levels.
+	// Bytes.toBytes family of functions. PROTO_BINARY - indicates values are
+	// encoded using serialized proto messages. This can only be used in
+	// combination with JSON type. 'encoding' can also be set at the column family
+	// level. However, the setting at this level takes precedence if 'encoding' is
+	// set at both levels.
 	Encoding string `json:"encoding,omitempty"`
 	// FieldName: Optional. If the qualifier is not a valid BigQuery field
 	// identifier i.e. does not match a-zA-Z*, a valid identifier must be provided
@@ -1064,6 +1066,9 @@ type BigtableColumn struct {
 	// family level. However, the setting at this level takes precedence if
 	// 'onlyReadLatest' is set at both levels.
 	OnlyReadLatest bool `json:"onlyReadLatest,omitempty"`
+	// ProtoConfig: Optional. Protobuf-specific configurations, only takes effect
+	// when the encoding is PROTO_BINARY.
+	ProtoConfig *BigtableProtoConfig `json:"protoConfig,omitempty"`
 	// QualifierEncoded: [Required] Qualifier of the column. Columns in the parent
 	// column family that has this exact qualifier are exposed as `.` field. If the
 	// qualifier is valid UTF-8 string, it can be specified in the qualifier_string
@@ -1110,9 +1115,10 @@ type BigtableColumnFamily struct {
 	// Encoding: Optional. The encoding of the values when the type is not STRING.
 	// Acceptable encoding values are: TEXT - indicates values are alphanumeric
 	// text strings. BINARY - indicates values are encoded using HBase
-	// Bytes.toBytes family of functions. This can be overridden for a specific
-	// column by listing that column in 'columns' and specifying an encoding for
-	// it.
+	// Bytes.toBytes family of functions. PROTO_BINARY - indicates values are
+	// encoded using serialized proto messages. This can only be used in
+	// combination with JSON type. This can be overridden for a specific column by
+	// listing that column in 'columns' and specifying an encoding for it.
 	Encoding string `json:"encoding,omitempty"`
 	// FamilyId: Identifier of the column family.
 	FamilyId string `json:"familyId,omitempty"`
@@ -1121,6 +1127,9 @@ type BigtableColumnFamily struct {
 	// for a specific column by listing that column in 'columns' and specifying a
 	// different setting for that column.
 	OnlyReadLatest bool `json:"onlyReadLatest,omitempty"`
+	// ProtoConfig: Optional. Protobuf-specific configurations, only takes effect
+	// when the encoding is PROTO_BINARY.
+	ProtoConfig *BigtableProtoConfig `json:"protoConfig,omitempty"`
 	// Type: Optional. The type to convert the value in cells of this column
 	// family. The values are expected to be encoded using HBase Bytes.toBytes
 	// function when using the BINARY encoding value. Following BigQuery types are
@@ -1186,6 +1195,36 @@ type BigtableOptions struct {
 
 func (s BigtableOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod BigtableOptions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// BigtableProtoConfig: Information related to a Bigtable protobuf column.
+type BigtableProtoConfig struct {
+	// ProtoMessageName: Optional. The fully qualified proto message name of the
+	// protobuf. In the format of "foo.bar.Message".
+	ProtoMessageName string `json:"protoMessageName,omitempty"`
+	// SchemaBundleId: Optional. The ID of the Bigtable SchemaBundle resource
+	// associated with this protobuf. The ID should be referred to within the
+	// parent table, e.g., `foo` rather than
+	// `projects/{project}/instances/{instance}/tables/{table}/schemaBundles/foo`.
+	// See more details on Bigtable SchemaBundles
+	// (https://docs.cloud.google.com/bigtable/docs/create-manage-protobuf-schemas).
+	SchemaBundleId string `json:"schemaBundleId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ProtoMessageName") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ProtoMessageName") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s BigtableProtoConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod BigtableProtoConfig
 	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
@@ -1964,7 +2003,7 @@ func (s DataMaskingStatistics) MarshalJSON() ([]byte, error) {
 
 // DataPolicyOption: Data policy option. For more information, see Mask data by
 // applying data policies to a column
-// (https://cloud.google.com/bigquery/docs/column-data-masking#data-policies-on-column/).
+// (https://docs.cloud.google.com/bigquery/docs/column-data-masking#data-policies-on-column).
 type DataPolicyOption struct {
 	// Name: Data policy resource name in the form of
 	// projects/project_id/locations/location_id/dataPolicies/data_policy_id.
@@ -2623,6 +2662,26 @@ type DmlStatistics struct {
 	// DeletedRowCount: Output only. Number of deleted Rows. populated by DML
 	// DELETE, MERGE and TRUNCATE statements.
 	DeletedRowCount int64 `json:"deletedRowCount,omitempty,string"`
+	// DmlMode: Output only. DML mode used.
+	//
+	// Possible values:
+	//   "DML_MODE_UNSPECIFIED" - Default value. This value is unused.
+	//   "COARSE_GRAINED_DML" - Coarse-grained DML was used.
+	//   "FINE_GRAINED_DML" - Fine-grained DML was used.
+	DmlMode string `json:"dmlMode,omitempty"`
+	// FineGrainedDmlUnusedReason: Output only. Reason for disabling fine-grained
+	// DML if applicable.
+	//
+	// Possible values:
+	//   "FINE_GRAINED_DML_UNUSED_REASON_UNSPECIFIED" - Default value. This value
+	// is unused.
+	//   "MAX_PARTITION_SIZE_EXCEEDED" - Max partition size threshold exceeded.
+	// [Fine-grained DML Limitations]
+	// (https://docs.cloud.google.com/bigquery/docs/data-manipulation-language#fine-grained-dml-limitations)
+	//   "TABLE_NOT_ENROLLED" - The table is not enrolled for fine-grained DML.
+	//   "DML_IN_MULTI_STATEMENT_TRANSACTION" - The DML statement is part of a
+	// multi-statement transaction.
+	FineGrainedDmlUnusedReason string `json:"fineGrainedDmlUnusedReason,omitempty"`
 	// InsertedRowCount: Output only. Number of inserted Rows. Populated by DML
 	// INSERT and MERGE statements
 	InsertedRowCount int64 `json:"insertedRowCount,omitempty,string"`
@@ -4062,20 +4121,37 @@ func (s *HparamTuningTrial) UnmarshalJSON(data []byte) error {
 // IncrementalResultStats: Statistics related to Incremental Query Results.
 // Populated as part of JobStatistics2. This feature is not yet available.
 type IncrementalResultStats struct {
-	// DisabledReason: Reason why incremental query results are/were not written by
-	// the query.
+	// DisabledReason: Output only. Reason why incremental query results are/were
+	// not written by the query.
 	//
 	// Possible values:
 	//   "DISABLED_REASON_UNSPECIFIED" - Disabled reason not specified.
-	//   "OTHER" - Some other reason.
+	//   "OTHER" - Incremental results are/were disabled for reasons not covered by
+	// the other enum values, e.g. runtime issues.
+	//   "UNSUPPORTED_OPERATOR" - Query includes an operation that is not
+	// supported.
 	DisabledReason string `json:"disabledReason,omitempty"`
-	// ResultSetLastModifyTime: The time at which the result table's contents were
-	// modified. May be absent if no results have been written or the query has
-	// completed.
-	ResultSetLastModifyTime string `json:"resultSetLastModifyTime,omitempty"`
-	// ResultSetLastReplaceTime: The time at which the result table's contents were
-	// completely replaced. May be absent if no results have been written or the
+	// DisabledReasonDetails: Output only. Additional human-readable clarification,
+	// if available, for DisabledReason.
+	DisabledReasonDetails string `json:"disabledReasonDetails,omitempty"`
+	// FirstIncrementalRowTime: Output only. The time at which the first
+	// incremental result was written. If the query needed to restart internally,
+	// this only describes the final attempt.
+	FirstIncrementalRowTime string `json:"firstIncrementalRowTime,omitempty"`
+	// IncrementalRowCount: Output only. Number of rows that were in the latest
+	// result set before query completion.
+	IncrementalRowCount int64 `json:"incrementalRowCount,omitempty,string"`
+	// LastIncrementalRowTime: Output only. The time at which the last incremental
+	// result was written. Does not include the final result written after query
+	// completion.
+	LastIncrementalRowTime string `json:"lastIncrementalRowTime,omitempty"`
+	// ResultSetLastModifyTime: Output only. The time at which the result table's
+	// contents were modified. May be absent if no results have been written or the
 	// query has completed.
+	ResultSetLastModifyTime string `json:"resultSetLastModifyTime,omitempty"`
+	// ResultSetLastReplaceTime: Output only. The time at which the result table's
+	// contents were completely replaced. May be absent if no results have been
+	// written or the query has completed.
 	ResultSetLastReplaceTime string `json:"resultSetLastReplaceTime,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DisabledReason") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -5073,10 +5149,10 @@ type JobConfigurationQuery struct {
 	TimePartitioning *TimePartitioning `json:"timePartitioning,omitempty"`
 	// UseLegacySql: Optional. Specifies whether to use BigQuery's legacy SQL
 	// dialect for this query. The default value is true. If set to false, the
-	// query will use BigQuery's GoogleSQL:
-	// https://cloud.google.com/bigquery/sql-reference/ When useLegacySql is set to
-	// false, the value of flattenResults is ignored; query will be run as if
-	// flattenResults is false.
+	// query uses BigQuery's GoogleSQL
+	// (https://docs.cloud.google.com/bigquery/docs/introduction-sql). When
+	// useLegacySql is set to false, the value of flattenResults is ignored; query
+	// will be run as if flattenResults is false.
 	//
 	// Default: true
 	UseLegacySql *bool `json:"useLegacySql,omitempty"`
@@ -5563,6 +5639,10 @@ type JobStatistics2 struct {
 	QueryInfo *QueryInfo `json:"queryInfo,omitempty"`
 	// QueryPlan: Output only. Describes execution plan for the query.
 	QueryPlan []*ExplainQueryStage `json:"queryPlan,omitempty"`
+	// ReferencedPropertyGraphs: Output only. Referenced property graphs for the
+	// job. Queries that reference more than 50 property graphs will not have a
+	// complete list.
+	ReferencedPropertyGraphs []*PropertyGraphReference `json:"referencedPropertyGraphs,omitempty"`
 	// ReferencedRoutines: Output only. Referenced routines for the job.
 	ReferencedRoutines []*RoutineReference `json:"referencedRoutines,omitempty"`
 	// ReferencedTables: Output only. Referenced tables for the job.
@@ -7056,6 +7136,34 @@ func (s ProjectReference) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
+// PropertyGraphReference: Id path of a property graph.
+type PropertyGraphReference struct {
+	// DatasetId: Required. The ID of the dataset containing this property graph.
+	DatasetId string `json:"datasetId,omitempty"`
+	// ProjectId: Required. The ID of the project containing this property graph.
+	ProjectId string `json:"projectId,omitempty"`
+	// PropertyGraphId: Required. The ID of the property graph. The ID must contain
+	// only letters (a-z, A-Z), numbers (0-9), or underscores (_). The maximum
+	// length is 256 characters.
+	PropertyGraphId string `json:"propertyGraphId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DatasetId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DatasetId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s PropertyGraphReference) MarshalJSON() ([]byte, error) {
+	type NoMethod PropertyGraphReference
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
 // PruningStats: The column metadata index pruning statistics.
 type PruningStats struct {
 	// PostCmetaPruningParallelInputCount: The number of parallel inputs matched.
@@ -7380,8 +7488,9 @@ type QueryRequest struct {
 	// response is true.
 	TimeoutMs int64 `json:"timeoutMs,omitempty"`
 	// UseLegacySql: Specifies whether to use BigQuery's legacy SQL dialect for
-	// this query. The default value is true. If set to false, the query will use
-	// BigQuery's GoogleSQL: https://cloud.google.com/bigquery/sql-reference/ When
+	// this query. The default value is true. If set to false, the query uses
+	// BigQuery's GoogleSQL
+	// (https://docs.cloud.google.com/bigquery/docs/introduction-sql). When
 	// useLegacySql is set to false, the value of flattenResults is ignored; query
 	// will be run as if flattenResults is false.
 	//
@@ -10948,10 +11057,10 @@ type ViewDefinition struct {
 	// set for GoogleSQL views.
 	UseExplicitColumnNames bool `json:"useExplicitColumnNames,omitempty"`
 	// UseLegacySql: Specifies whether to use BigQuery's legacy SQL for this view.
-	// The default value is true. If set to false, the view will use BigQuery's
-	// GoogleSQL: https://cloud.google.com/bigquery/sql-reference/ Queries and
-	// views that reference this view must use the same flag value. A wrapper is
-	// used here because the default value is True.
+	// The default value is true. If set to false, the view uses BigQuery's
+	// GoogleSQL (https://docs.cloud.google.com/bigquery/docs/introduction-sql).
+	// Queries and views that reference this view must use the same flag value. A
+	// wrapper is used here because the default value is True.
 	UseLegacySql bool `json:"useLegacySql,omitempty"`
 	// UserDefinedFunctionResources: Describes user-defined function resources used
 	// in the query.
