@@ -77,7 +77,7 @@ func NewClient(logger *slog.Logger, googleAPIjsonkeypath, googleProjectID, googl
 		if googleProjectID == "" {
 			googleProjectID = fmt.Sprintf("%v", result["project_id"])
 		}
-		bigQueryClientOptions = append(bigQueryClientOptions, option.WithCredentialsFile(googleAPIjsonkeypath))
+		bigQueryClientOptions = append(bigQueryClientOptions, option.WithAuthCredentialsFile(option.ServiceAccount, googleAPIjsonkeypath))
 	}
 
 	c, err := bigquery.NewClient(ctx, googleProjectID, bigQueryClientOptions...)
