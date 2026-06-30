@@ -24,7 +24,7 @@ jobs:
       id-token: 'write'
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Install Go
       uses: actions/setup-go@v6
       with:
@@ -38,7 +38,7 @@ jobs:
     - name: Test
       run: make test-unit
     - name: Upload unit test coverage to Codecov
-      uses: codecov/codecov-action@v6.0.0
+      uses: codecov/codecov-action@v7.0.0
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       with:
@@ -60,7 +60,7 @@ jobs:
         make bq-setup
         make test-e2e
     - name: Upload e2e test coverage to Codecov
-      uses: codecov/codecov-action@v6.0.0
+      uses: codecov/codecov-action@v7.0.0
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       with:
@@ -85,7 +85,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Install Go
