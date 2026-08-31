@@ -127,11 +127,60 @@ You can configure this storage adapter either through command line options or en
 | `--googleAPItableID` | `PROMBQ_TABLE` | Yes | | Table name as shown in GCP |
 | `--googleAPIjsonkeypath` | `PROMBQ_GCP_JSON` | Yes\* | | Path to json keyfile for GCP service account. At least one of `--googleAPIjsonkeypath` or `--googleProjectID` must be specified. |
 | `--googleProjectID` | `PROMBQ_GCP_PROJECT_ID` | Yes\* | | The GCP `project_id` to use, overwriting the value from the keyfile if both are used. At least one of `--googleAPIjsonkeypath` or `--googleProjectID` must be specified. |
+| `--promoted-labels` | `PROMBQ_PROMOTED_LABELS` | No | | Comma-separated `column:label[\|modifier]` pairs promoting Prometheus labels into dedicated BigQuery columns. See [Promoting labels to columns](#promoting-labels-to-columns) |
 | `--send-timeout` | `PROMBQ_TIMEOUT` | No | `30s` | The timeout to use when sending samples to the remote storage |
 | `--web.listen-address` | `PROMBQ_LISTEN` | No | `:9201` | Address to listen on for web endpoints |
 | `--web.telemetry-path` | `PROMBQ_TELEMETRY` | No | `/metrics` | Address to listen on for web endpoints |
 | `--log.level` | `PROMBQ_LOG_LEVEL` | No | `info` | Only log messages with the given severity or above. One of: [debug, info, warn, error] |
 | `--log.format` | `PROMBQ_LOG_FORMAT` | No | `logfmt` | Output format of log messages. One of: [logfmt, json] |
+
+## Promoting Labels To Columns
+
+By default every label except `__name__` is stored only inside the `tags` JSON string. If you query one label constantly, you can also have it written to its own top-level column with `--promoted-labels` (or `PROMBQ_PROMOTED_LABELS`):
+
+```shell
+./bigquery_remote_storage_adapter \
+  --googleProjectID=my-gcp-project-id \
+  --googleAPIdatasetID=prometheus \
+  --googleAPItableID=metrics_stream \
+  --promoted-labels=hostname:instance
+```
+
+Each entry is `column:label`, optionally followed by `|`-separated modifiers. Multiple entries are comma separated, and one label may feed more than one column:
+
+```
+--promoted-labels=hostname:instance,cluster:cluster
+--promoted-labels=hostname:instance|strip-port
+```
+
+| Modifier | Effect |
+| --- | --- |
+| `strip-port` | Removes a trailing `:<port>` from the value, so `web-01.example.net:9100` is stored as `web-01.example.net`. Bracketed IPv6 literals keep their brackets; a bare IPv6 address is left untouched. |
+| `omit-empty` | When the label is absent from a series, omit the column so it is stored as `NULL`. Only valid for `NULLABLE` columns — see below. |
+
+This feature is off by default. With no `--promoted-labels`, rows contain exactly the same four fields they always have and no table change is needed.
+
+**The column must exist before you enable the flag.** Add it first — this is additive and does not affect existing rows or queries:
+
+```sql
+ALTER TABLE `your_gcp_project.prometheus.metrics_stream`
+  ADD COLUMN IF NOT EXISTS hostname STRING;
+```
+
+A promoted column is written on **every** row: the label's value when the series has it, an empty string when it does not. That is what makes the feature safe for a column declared `REQUIRED`, since `REQUIRED` forbids `NULL` but accepts an empty string. Use `omit-empty` only when the column is `NULLABLE` and you need to tell "the series had no such label" apart from "the label was empty".
+
+Promoted labels are **also kept in the `tags` JSON**. Existing dashboards and `JSON_EXTRACT(tags, ...)` queries keep working unchanged, and a write/read round-trip through the adapter stays lossless. When `strip-port` is used, the column holds the stripped value while `tags` keeps the original.
+
+At startup the adapter reads the destination table's schema once and warns if a promoted column is missing, is not a `STRING`, or is declared `REPEATED` — a promoted value is always a single string, so any of those means rows will be rejected. It exits with an error if a `REQUIRED` column is configured with `omit-empty`, since that combination can never be satisfied. If the service account cannot read table metadata the check is skipped and the adapter starts normally.
+
+### Troubleshooting
+
+Both of these appear in the write path when the table and the configuration disagree. Failed rows are counted in `storage_bigquery_failed_samples_total`.
+
+| Error | Meaning |
+| --- | --- |
+| `Missing required field: ....<column>` | The column exists and is `REQUIRED`, but the row carried no value for it — for example a stock build writing to a table that expects a promoted column. |
+| `no such field: <column>` | The column does not exist in the destination table. Run the `ALTER TABLE` above. |
 
 ## Configuring Prometheus
 

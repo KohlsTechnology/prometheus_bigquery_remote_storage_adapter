@@ -24,6 +24,8 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -48,8 +50,83 @@ type config struct {
 	remoteTimeout        time.Duration
 	listenAddr           string
 	telemetryPath        string
+	promotedLabels       string
+	promotedColumns      []bigquerydb.PromotedColumn
 	promslogConfig       promslog.Config
 	printVersion         bool
+}
+
+// Column names must be valid BigQuery identifiers, label names must be valid
+// Prometheus label names.
+var (
+	promotedColumnRegexp = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,299}$`)
+	promotedLabelRegexp  = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+)
+
+// parsePromotedLabels parses the --promoted-labels value: a comma separated
+// list of column:label[|modifier] entries. Parsing happens once at startup so
+// that a bad mapping fails fast, rather than producing one rejected row and
+// one log line per sample for as long as the process runs.
+func parsePromotedLabels(raw string) ([]bigquerydb.PromotedColumn, error) {
+	if strings.TrimSpace(raw) == "" {
+		return nil, nil
+	}
+
+	reserved := make(map[string]bool, len(bigquerydb.CoreColumns))
+	for _, c := range bigquerydb.CoreColumns {
+		reserved[c] = true
+	}
+
+	var columns []bigquerydb.PromotedColumn
+	seen := make(map[string]bool)
+
+	for _, entry := range strings.Split(raw, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+
+		parts := strings.Split(entry, "|")
+		pair := strings.TrimSpace(parts[0])
+
+		kv := strings.Split(pair, ":")
+		if len(kv) != 2 {
+			return nil, errors.Errorf("promoted label %q must be of the form column:label", entry)
+		}
+		column := strings.TrimSpace(kv[0])
+		label := strings.TrimSpace(kv[1])
+		if column == "" || label == "" {
+			return nil, errors.Errorf("promoted label %q must have a non-empty column and label", entry)
+		}
+		if !promotedColumnRegexp.MatchString(column) {
+			return nil, errors.Errorf("promoted label %q: %q is not a valid BigQuery column name", entry, column)
+		}
+		if !promotedLabelRegexp.MatchString(label) {
+			return nil, errors.Errorf("promoted label %q: %q is not a valid Prometheus label name", entry, label)
+		}
+		if reserved[column] {
+			return nil, errors.Errorf("promoted label %q: %q is a reserved column name", entry, column)
+		}
+		if seen[column] {
+			return nil, errors.Errorf("promoted label %q: column %q is mapped more than once", entry, column)
+		}
+		seen[column] = true
+
+		promoted := bigquerydb.PromotedColumn{Column: column, Label: label}
+		for _, modifier := range parts[1:] {
+			switch strings.TrimSpace(modifier) {
+			case "strip-port":
+				promoted.StripPort = true
+			case "omit-empty":
+				promoted.OmitEmpty = true
+			default:
+				return nil, errors.Errorf("promoted label %q: unknown modifier %q", entry, strings.TrimSpace(modifier))
+			}
+		}
+		columns = append(columns, promoted)
+	}
+
+	return columns, nil
 }
 
 var (
@@ -138,6 +215,7 @@ func main() {
 		slog.Any("googleAPItableID", cfg.googleAPItableID),
 		slog.Any("telemetryPath", cfg.telemetryPath),
 		slog.Any("listenAddr", cfg.listenAddr),
+		slog.Any("promotedLabels", cfg.promotedLabels),
 		slog.Any("remoteTimeout", cfg.remoteTimeout))
 
 	writers, readers := buildClients(*logger, cfg)
@@ -169,7 +247,11 @@ func parseFlags() *config {
 		Envar("PROMBQ_LISTEN").Default(":9201").StringVar(&cfg.listenAddr)
 	a.Flag("web.telemetry-path", "Address to listen on for web endpoints.").
 		Envar("PROMBQ_TELEMETRY").Default("/metrics").StringVar(&cfg.telemetryPath)
-	cfg.promslogConfig.Level = &promslog.Level{}
+	a.Flag("promoted-labels", "Comma-separated column:label[|modifier] pairs promoting Prometheus labels into dedicated BigQuery columns (e.g. hostname:instance). Modifiers: strip-port, omit-empty. The columns must already exist in the destination table.").
+		Envar("PROMBQ_PROMOTED_LABELS").Default("").StringVar(&cfg.promotedLabels)
+	// Must use the constructor: &promslog.Level{} leaves the embedded
+	// slog.LevelVar nil, and kingpin's default handling dereferences it.
+	cfg.promslogConfig.Level = promslog.NewLevel()
 	a.Flag("log.level", "Only log messages with the given severity or above. One of: [debug, info, warn, error]").
 		Envar("PROMBQ_LOG_LEVEL").Default("info").SetValue(cfg.promslogConfig.Level)
 	cfg.promslogConfig.Format = &promslog.Format{}
@@ -184,6 +266,10 @@ func parseFlags() *config {
 	}
 
 	handle(err, a)
+
+	cfg.promotedColumns, err = parsePromotedLabels(cfg.promotedLabels)
+	handle(err, a)
+
 	if cfg.googleAPIjsonkeypath == "" {
 		googleProjectIDFlagCause.Required().StringVar(&cfg.googleProjectID)
 		_, err = a.Parse(os.Args[1:])
@@ -221,7 +307,8 @@ func buildClients(logger slog.Logger, cfg *config) ([]writer, []reader) {
 		cfg.googleProjectID,
 		cfg.googleAPIdatasetID,
 		cfg.googleAPItableID,
-		cfg.remoteTimeout)
+		cfg.remoteTimeout,
+		bigquerydb.WithPromotedLabels(cfg.promotedColumns))
 	prometheus.MustRegister(c)
 	writers = append(writers, c)
 	readers = append(readers, c)

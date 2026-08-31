@@ -16,14 +16,18 @@ limitations under the License.
 package bigquerydb
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
 	"math"
 	"os"
 	"testing"
 	"time"
 
+	"cloud.google.com/go/bigquery"
 	"github.com/prometheus/prometheus/prompb"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/api/iterator"
 )
 
 var bigQueryClientTimeout = time.Second * 60
@@ -145,4 +149,108 @@ func TestLabelMatchers(t *testing.T) {
 			assert.Equal(t, timeseriesData[testCase.expectedResult], result.Results[0].Timeseries)
 		})
 	}
+}
+
+// TestPromotedLabelColumns exercises promotion against a real table whose
+// promoted column is REQUIRED, mirroring production. It provisions and drops
+// its own table so bq-schema.json, the Makefile and the CI workflow need no
+// changes. This is the direct regression test for a stock binary writing no
+// hostname key and BigQuery rejecting every row with "Missing required field".
+func TestPromotedLabelColumns(t *testing.T) {
+	ctx := context.Background()
+	nowUnix := time.Now().Unix() * 1000
+	promotedTableID := googleAPItableID + "_promoted"
+
+	client, err := bigquery.NewClient(ctx, googleProjectID)
+	if err != nil {
+		t.Fatal("failed to create bigquery client", err)
+	}
+	defer client.Close()
+
+	table := client.Dataset(googleAPIdatasetID).Table(promotedTableID)
+	err = table.Create(ctx, &bigquery.TableMetadata{
+		Schema: bigquery.Schema{
+			{Name: "metricname", Type: bigquery.StringFieldType},
+			{Name: "tags", Type: bigquery.StringFieldType},
+			{Name: "timestamp", Type: bigquery.TimestampFieldType},
+			{Name: "value", Type: bigquery.FloatFieldType},
+			// REQUIRED on purpose: an omitted key must be impossible.
+			{Name: "hostname", Type: bigquery.StringFieldType, Required: true},
+		},
+		TimePartitioning: &bigquery.TimePartitioning{Field: "timestamp"},
+	})
+	if err != nil {
+		t.Fatal("failed to create promoted test table", err)
+	}
+	defer func() {
+		if err := table.Delete(ctx); err != nil {
+			t.Logf("failed to drop promoted test table %s: %v", promotedTableID, err)
+		}
+	}()
+
+	withInstance := []*prompb.TimeSeries{{
+		Labels: []*prompb.Label{
+			{Name: "__name__", Value: "promoted_with_instance"},
+			{Name: "instance", Value: "web-01.example.net"},
+		},
+		Samples: []prompb.Sample{{Timestamp: nowUnix, Value: 1}},
+	}}
+	// No instance label at all: this is the row a REQUIRED column rejects
+	// unless the adapter writes an empty string for it.
+	withoutInstance := []*prompb.TimeSeries{{
+		Labels: []*prompb.Label{
+			{Name: "__name__", Value: "promoted_without_instance"},
+		},
+		Samples: []prompb.Sample{{Timestamp: nowUnix, Value: 2}},
+	}}
+
+	bqclient := NewClient(logger, "", googleProjectID, googleAPIdatasetID, promotedTableID, bigQueryClientTimeout,
+		WithPromotedLabels([]PromotedColumn{{Column: "hostname", Label: "instance"}}))
+
+	for _, timeseries := range [][]*prompb.TimeSeries{withInstance, withoutInstance} {
+		// A REQUIRED violation surfaces here as a PutMultiError, not silently.
+		assert.NoError(t, bqclient.Write(timeseries), "every row must be accepted by a REQUIRED promoted column")
+	}
+
+	query := client.Query(fmt.Sprintf(
+		"SELECT metricname, hostname FROM %s.%s ORDER BY metricname", googleAPIdatasetID, promotedTableID))
+	iter, err := query.Read(ctx)
+	if err != nil {
+		t.Fatal("failed to query promoted test table", err)
+	}
+
+	stored := map[string]string{}
+	for {
+		row := map[string]bigquery.Value{}
+		err := iter.Next(&row)
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			t.Fatal("failed to read promoted test table", err)
+		}
+		hostname, _ := row["hostname"].(string)
+		metricname, _ := row["metricname"].(string)
+		stored[metricname] = hostname
+	}
+
+	assert.Equal(t, map[string]string{
+		"promoted_with_instance":    "web-01.example.net",
+		"promoted_without_instance": "",
+	}, stored)
+
+	// The promoted label must still be in tags, so the read path round-trips.
+	result, err := bqclient.Read(&prompb.ReadRequest{
+		Queries: []*prompb.Query{{
+			StartTimestampMs: nowUnix,
+			EndTimestampMs:   nowUnix + 10000,
+			Matchers: []*prompb.LabelMatcher{
+				{Type: prompb.LabelMatcher_EQ, Name: "__name__", Value: "promoted_with_instance"},
+			},
+		}},
+	})
+
+	assert.NoError(t, err, "failed to process query")
+	assert.Len(t, result.Results, 1)
+	assert.Equal(t, withInstance, result.Results[0].Timeseries)
 }

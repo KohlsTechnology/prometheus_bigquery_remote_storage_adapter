@@ -47,10 +47,38 @@ type BigqueryClient struct {
 	batchWriteDuration prometheus.Histogram
 	sqlQueryCount      prometheus.Counter
 	sqlQueryDuration   prometheus.Histogram
+	promoted           []PromotedColumn
+}
+
+// CoreColumns are the column names every row always carries. Promoted columns
+// may never use these names, so a promoted key can never shadow a core field.
+var CoreColumns = []string{"value", "metricname", "timestamp", "tags"}
+
+// PromotedColumn maps a Prometheus label onto a dedicated top-level BigQuery
+// column. StripPort removes a trailing :port from the value. OmitEmpty drops
+// the key entirely when the label is absent, so the column is stored as NULL;
+// without it the column is written on every row (empty string when the label
+// is absent) so that a REQUIRED column can never be violated.
+type PromotedColumn struct {
+	Column    string
+	Label     string
+	StripPort bool
+	OmitEmpty bool
+}
+
+// ClientOption customizes a BigqueryClient. Options are variadic so that the
+// existing NewClient signature stays source-compatible for current callers.
+type ClientOption func(*BigqueryClient)
+
+// WithPromotedLabels configures labels to be promoted into their own columns.
+func WithPromotedLabels(cols []PromotedColumn) ClientOption {
+	return func(c *BigqueryClient) {
+		c.promoted = append([]PromotedColumn(nil), cols...)
+	}
 }
 
 // NewClient creates a new Client.
-func NewClient(logger *slog.Logger, googleAPIjsonkeypath, googleProjectID, googleAPIdatasetID, googleAPItableID string, remoteTimeout time.Duration) *BigqueryClient {
+func NewClient(logger *slog.Logger, googleAPIjsonkeypath, googleProjectID, googleAPIdatasetID, googleAPItableID string, remoteTimeout time.Duration, opts ...ClientOption) *BigqueryClient {
 	ctx := context.Background()
 	if logger == nil {
 		logger = promslog.NewNopLogger()
@@ -87,7 +115,7 @@ func NewClient(logger *slog.Logger, googleAPIjsonkeypath, googleProjectID, googl
 		os.Exit(1)
 	}
 
-	return &BigqueryClient{
+	bqc := &BigqueryClient{
 		logger:    logger,
 		client:    *c,
 		datasetID: googleAPIdatasetID,
@@ -125,6 +153,101 @@ func NewClient(logger *slog.Logger, googleAPIjsonkeypath, googleProjectID, googl
 			},
 		),
 	}
+
+	for _, opt := range opts {
+		opt(bqc)
+	}
+	bqc.preflightPromotedColumns()
+
+	return bqc
+}
+
+// preflightPromotedColumns checks the destination table once at startup, but
+// only when promotion is configured, so the default path issues no extra API
+// call. A missing or mistyped column is a warning: rows will be rejected, but
+// loudly, and a warning must not block a restart. A REQUIRED column combined
+// with OmitEmpty is fatal because that pairing is guaranteed to reject rows.
+// Unreadable metadata is not fatal either, since a write-scoped service
+// account may lack bigquery.tables.get.
+func (c *BigqueryClient) preflightPromotedColumns() {
+	if len(c.promoted) == 0 {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	defer cancel()
+
+	md, err := c.client.Dataset(c.datasetID).Table(c.tableID).Metadata(ctx)
+	if err != nil {
+		c.logger.Debug("could not read destination table schema, skipping promoted column preflight", slog.Any("error", err))
+		return
+	}
+
+	fatal := false
+	for _, issue := range checkPromotedColumns(md.Schema, c.promoted) {
+		if issue.fatal {
+			c.logger.Error(issue.reason, slog.Any("column", issue.column))
+			fatal = true
+			continue
+		}
+		c.logger.Warn(issue.reason, slog.Any("column", issue.column))
+	}
+	if fatal {
+		os.Exit(1)
+	}
+}
+
+// promotedSchemaIssue is one problem found when comparing the configured
+// promoted columns against the destination table schema.
+type promotedSchemaIssue struct {
+	column string
+	reason string
+	fatal  bool
+}
+
+// checkPromotedColumns compares the configured promoted columns against a table
+// schema. It is separated from the API call so it can be tested without a live
+// BigQuery table. Only an unsatisfiable configuration is fatal; everything else
+// is a warning, because rows rejected at write time surface loudly through
+// storage_bigquery_failed_samples_total and must not block a restart.
+func checkPromotedColumns(schema bigquery.Schema, promoted []PromotedColumn) []promotedSchemaIssue {
+	declared := make(map[string]*bigquery.FieldSchema, len(schema))
+	for _, f := range schema {
+		declared[f.Name] = f
+	}
+
+	var issues []promotedSchemaIssue
+	for _, p := range promoted {
+		f, ok := declared[p.Column]
+		if !ok {
+			issues = append(issues, promotedSchemaIssue{
+				column: p.Column,
+				reason: "promoted column does not exist in the destination table, rows will be rejected until it is added",
+			})
+			continue
+		}
+		if f.Repeated {
+			issues = append(issues, promotedSchemaIssue{
+				column: p.Column,
+				reason: "promoted column is REPEATED, but a promoted value is a single string, rows will be rejected",
+			})
+		}
+		if f.Type != bigquery.StringFieldType {
+			issues = append(issues, promotedSchemaIssue{
+				column: p.Column,
+				reason: fmt.Sprintf("promoted column has type %s, but a promoted value is a string, rows will be rejected", f.Type),
+			})
+		}
+		// Repeated fields are never Required, so this cannot double-report.
+		if f.Required && p.OmitEmpty {
+			issues = append(issues, promotedSchemaIssue{
+				column: p.Column,
+				reason: "promoted column is REQUIRED but configured with omit-empty, which can never satisfy it",
+				fatal:  true,
+			})
+		}
+	}
+	return issues
 }
 
 // Item represents a row item.
@@ -133,16 +256,81 @@ type Item struct {
 	metricname string  `bigquery:"metricname"`
 	timestamp  int64   `bigquery:"timestamp"`
 	tags       string  `bigquery:"tags"`
+	promoted   map[string]string
 }
 
 // Save implements the ValueSaver interface.
 func (i *Item) Save() (map[string]bigquery.Value, string, error) {
-	return map[string]bigquery.Value{
+	row := map[string]bigquery.Value{
 		"value":      i.value,
 		"metricname": i.metricname,
 		"timestamp":  i.timestamp,
 		"tags":       i.tags,
-	}, "", nil
+	}
+	// Promoted column names are validated at startup against CoreColumns, so
+	// none of these keys can overwrite one of the four above.
+	for column, value := range i.promoted {
+		row[column] = value
+	}
+	return row, "", nil
+}
+
+// promotedValues resolves the configured promoted columns for one time series.
+// It returns nil when promotion is disabled, so the default row shape is
+// untouched.
+func (c *BigqueryClient) promotedValues(m model.Metric) map[string]string {
+	if len(c.promoted) == 0 {
+		return nil
+	}
+	values := make(map[string]string, len(c.promoted))
+	for _, p := range c.promoted {
+		v, ok := m[model.LabelName(p.Label)]
+		if !ok {
+			if p.OmitEmpty {
+				continue
+			}
+			// The column is written on every row: a REQUIRED column rejects a
+			// missing key, but accepts an empty string.
+			values[p.Column] = ""
+			continue
+		}
+		value := string(v)
+		if p.StripPort {
+			value = stripPort(value)
+		}
+		values[p.Column] = value
+	}
+	return values
+}
+
+// stripPort removes a trailing :port from a host string. Bracketed IPv6
+// literals keep their brackets, and a bare IPv6 address is left alone since it
+// cannot be told apart from a host:port pair with certainty.
+func stripPort(s string) string {
+	if strings.HasPrefix(s, "[") {
+		if end := strings.LastIndex(s, "]"); end != -1 {
+			return s[:end+1]
+		}
+		return s
+	}
+	i := strings.LastIndex(s, ":")
+	if i == -1 {
+		return s
+	}
+	if strings.Contains(s[:i], ":") {
+		// More than one colon and no brackets: treat as a bare IPv6 address.
+		return s
+	}
+	port := s[i+1:]
+	if port == "" {
+		return s
+	}
+	for _, r := range port {
+		if r < '0' || r > '9' {
+			return s
+		}
+	}
+	return s[:i]
 }
 
 // tagsFromMetric extracts tags from a Prometheus MetricNameLabel.
@@ -175,6 +363,8 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 		}
 
 		t := tagsFromMetric(metric)
+		// Resolved once per series rather than per sample.
+		promoted := c.promotedValues(metric)
 
 		for _, s := range samples {
 			v := float64(s.Value)
@@ -189,6 +379,7 @@ func (c *BigqueryClient) Write(timeseries []*prompb.TimeSeries) error {
 				metricname: string(metric[model.MetricNameLabel]),
 				timestamp:  model.Time(s.Timestamp).Unix(),
 				tags:       t,
+				promoted:   promoted,
 			})
 		}
 	}
