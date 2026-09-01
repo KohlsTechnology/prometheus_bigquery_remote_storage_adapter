@@ -31,7 +31,7 @@ cloud.google.com/go/auth/internal/trustboundary
 # cloud.google.com/go/auth/oauth2adapt v0.2.8
 ## explicit; go 1.23.0
 cloud.google.com/go/auth/oauth2adapt
-# cloud.google.com/go/bigquery v1.77.0
+# cloud.google.com/go/bigquery v1.79.0
 ## explicit; go 1.25.0
 cloud.google.com/go/bigquery
 cloud.google.com/go/bigquery/internal
@@ -41,7 +41,7 @@ cloud.google.com/go/bigquery/storage/apiv1/storagepb
 # cloud.google.com/go/compute/metadata v0.9.0
 ## explicit; go 1.24.0
 cloud.google.com/go/compute/metadata
-# cloud.google.com/go/iam v1.7.0
+# cloud.google.com/go/iam v1.11.0
 ## explicit; go 1.25.0
 cloud.google.com/go/iam
 cloud.google.com/go/iam/apiv1/iampb
