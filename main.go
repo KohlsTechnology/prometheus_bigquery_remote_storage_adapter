@@ -72,9 +72,14 @@ func parsePromotedLabels(raw string) ([]bigquerydb.PromotedColumn, error) {
 		return nil, nil
 	}
 
+	// BigQuery treats column names case-insensitively: a table cannot hold both
+	// "hostname" and "Hostname", and an insert keyed on the wrong case resolves
+	// to the same column. Go maps are case-sensitive, so every uniqueness and
+	// reservation check below folds the name first; the configured spelling is
+	// still what gets written.
 	reserved := make(map[string]bool, len(bigquerydb.CoreColumns))
 	for _, c := range bigquerydb.CoreColumns {
-		reserved[c] = true
+		reserved[strings.ToLower(c)] = true
 	}
 
 	var columns []bigquerydb.PromotedColumn
@@ -104,13 +109,14 @@ func parsePromotedLabels(raw string) ([]bigquerydb.PromotedColumn, error) {
 		if !promotedLabelRegexp.MatchString(label) {
 			return nil, errors.Errorf("promoted label %q: %q is not a valid Prometheus label name", entry, label)
 		}
-		if reserved[column] {
+		folded := strings.ToLower(column)
+		if reserved[folded] {
 			return nil, errors.Errorf("promoted label %q: %q is a reserved column name", entry, column)
 		}
-		if seen[column] {
+		if seen[folded] {
 			return nil, errors.Errorf("promoted label %q: column %q is mapped more than once", entry, column)
 		}
-		seen[column] = true
+		seen[folded] = true
 
 		promoted := bigquerydb.PromotedColumn{Column: column, Label: label}
 		for _, modifier := range parts[1:] {

@@ -160,6 +160,8 @@ Each entry is `column:label`, optionally followed by `|`-separated modifiers. Mu
 
 This feature is off by default. With no `--promoted-labels`, rows contain exactly the same four fields they always have and no table change is needed.
 
+Column names are compared **case-insensitively**, the way BigQuery itself treats them: `Hostname` and `hostname` are the same column. Two entries differing only in case are rejected at startup, as is a core column name (`value`, `metricname`, `timestamp`, `tags`) in any case, and a column configured as `Hostname` is matched against a `hostname` field in the table rather than reported as missing.
+
 **The column must exist before you enable the flag.** Add it first — this is additive and does not affect existing rows or queries:
 
 ```sql

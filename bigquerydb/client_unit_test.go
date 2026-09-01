@@ -289,3 +289,46 @@ func TestPromotedSchemaPreflight(t *testing.T) {
 		})
 	}
 }
+
+// BigQuery column names are case-insensitive, so a column configured as
+// "Hostname" against a schema field "hostname" is the same column and must not
+// be reported as missing. The mismatched case still has to be checked for type
+// and mode, since that is the column the rows will actually land in.
+func TestCheckPromotedColumnsIsCaseInsensitive(t *testing.T) {
+	testCases := map[string]struct {
+		schema       bigquery.Schema
+		promoted     []PromotedColumn
+		expectIssues int
+	}{
+		"configured upper, declared lower": {
+			schema:   bigquery.Schema{{Name: "hostname", Type: bigquery.StringFieldType}},
+			promoted: []PromotedColumn{{Column: "Hostname", Label: "instance"}},
+		},
+		"configured lower, declared upper": {
+			schema:   bigquery.Schema{{Name: "Hostname", Type: bigquery.StringFieldType}},
+			promoted: []PromotedColumn{{Column: "hostname", Label: "instance"}},
+		},
+		"case mismatch still validates the type": {
+			schema:       bigquery.Schema{{Name: "hostname", Type: bigquery.IntegerFieldType}},
+			promoted:     []PromotedColumn{{Column: "Hostname", Label: "instance"}},
+			expectIssues: 1,
+		},
+		"genuinely missing column is still reported": {
+			schema:       bigquery.Schema{{Name: "tags", Type: bigquery.StringFieldType}},
+			promoted:     []PromotedColumn{{Column: "Hostname", Label: "instance"}},
+			expectIssues: 1,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			issues := checkPromotedColumns(tc.schema, tc.promoted)
+
+			assert.Len(t, issues, tc.expectIssues)
+			for _, issue := range issues {
+				// The issue names the column as the operator configured it.
+				assert.Equal(t, tc.promoted[0].Column, issue.column)
+			}
+		})
+	}
+}

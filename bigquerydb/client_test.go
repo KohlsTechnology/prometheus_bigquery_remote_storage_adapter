@@ -254,3 +254,84 @@ func TestPromotedLabelColumns(t *testing.T) {
 	assert.Len(t, result.Results, 1)
 	assert.Equal(t, withInstance, result.Results[0].Timeseries)
 }
+
+// TestPromotedLabelColumnCaseMismatch pins the behaviour BigQuery actually has:
+// column names are case-insensitive, so a column configured as "Hostname"
+// against a table field named "hostname" is the same column. It must neither be
+// flagged as missing by the preflight nor rejected on write.
+func TestPromotedLabelColumnCaseMismatch(t *testing.T) {
+	ctx := context.Background()
+	nowUnix := time.Now().Unix() * 1000
+	promotedTableID := googleAPItableID + "_promoted_case"
+
+	client, err := bigquery.NewClient(ctx, googleProjectID)
+	if err != nil {
+		t.Fatal("failed to create bigquery client", err)
+	}
+	defer client.Close()
+
+	table := client.Dataset(googleAPIdatasetID).Table(promotedTableID)
+	err = table.Create(ctx, &bigquery.TableMetadata{
+		Schema: bigquery.Schema{
+			{Name: "metricname", Type: bigquery.StringFieldType},
+			{Name: "tags", Type: bigquery.StringFieldType},
+			{Name: "timestamp", Type: bigquery.TimestampFieldType},
+			{Name: "value", Type: bigquery.FloatFieldType},
+			// Declared lower case, configured below as "Hostname".
+			{Name: "hostname", Type: bigquery.StringFieldType, Required: true},
+		},
+		TimePartitioning: &bigquery.TimePartitioning{Field: "timestamp"},
+	})
+	if err != nil {
+		t.Fatal("failed to create promoted test table", err)
+	}
+	defer func() {
+		if err := table.Delete(ctx); err != nil {
+			t.Logf("failed to drop promoted test table %s: %v", promotedTableID, err)
+		}
+	}()
+
+	timeseries := []*prompb.TimeSeries{{
+		Labels: []*prompb.Label{
+			{Name: "__name__", Value: "promoted_case_mismatch"},
+			{Name: "instance", Value: "web-01.example.net"},
+		},
+		Samples: []prompb.Sample{{Timestamp: nowUnix, Value: 1}},
+	}}
+
+	// NewClient runs the preflight: a case-only difference must not warn, and
+	// must not be fatal.
+	bqclient := NewClient(logger, "", googleProjectID, googleAPIdatasetID, promotedTableID, bigQueryClientTimeout,
+		WithPromotedLabels([]PromotedColumn{{Column: "Hostname", Label: "instance"}}))
+
+	assert.Empty(t, checkPromotedColumns(bigquery.Schema{
+		{Name: "hostname", Type: bigquery.StringFieldType, Required: true},
+	}, []PromotedColumn{{Column: "Hostname", Label: "instance"}}),
+		"a case-only difference is the same column and must not be reported")
+
+	assert.NoError(t, bqclient.Write(timeseries), "a differently-cased promoted key must still be accepted")
+
+	query := client.Query(fmt.Sprintf(
+		"SELECT metricname, hostname FROM %s.%s", googleAPIdatasetID, promotedTableID))
+	iter, err := query.Read(ctx)
+	if err != nil {
+		t.Fatal("failed to query promoted test table", err)
+	}
+
+	stored := map[string]string{}
+	for {
+		row := map[string]bigquery.Value{}
+		err := iter.Next(&row)
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			t.Fatal("failed to read promoted test table", err)
+		}
+		hostname, _ := row["hostname"].(string)
+		metricname, _ := row["metricname"].(string)
+		stored[metricname] = hostname
+	}
+
+	assert.Equal(t, map[string]string{"promoted_case_mismatch": "web-01.example.net"}, stored)
+}

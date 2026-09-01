@@ -211,14 +211,17 @@ type promotedSchemaIssue struct {
 // is a warning, because rows rejected at write time surface loudly through
 // storage_bigquery_failed_samples_total and must not block a restart.
 func checkPromotedColumns(schema bigquery.Schema, promoted []PromotedColumn) []promotedSchemaIssue {
+	// BigQuery column names are case-insensitive, so "Hostname" configured
+	// against a "hostname" field is the same column. Fold both sides of the
+	// lookup, otherwise a mere case difference is reported as a missing column.
 	declared := make(map[string]*bigquery.FieldSchema, len(schema))
 	for _, f := range schema {
-		declared[f.Name] = f
+		declared[strings.ToLower(f.Name)] = f
 	}
 
 	var issues []promotedSchemaIssue
 	for _, p := range promoted {
-		f, ok := declared[p.Column]
+		f, ok := declared[strings.ToLower(p.Column)]
 		if !ok {
 			issues = append(issues, promotedSchemaIssue{
 				column: p.Column,

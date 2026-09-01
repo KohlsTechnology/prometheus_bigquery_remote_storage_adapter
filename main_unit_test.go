@@ -16,6 +16,7 @@ limitations under the License.
 package main
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/KohlsTechnology/prometheus_bigquery_remote_storage_adapter/bigquerydb"
@@ -109,6 +110,20 @@ func TestParsePromotedLabelsInvalid(t *testing.T) {
 		"reserved metricname":      {raw: "metricname:instance", errContains: "reserved column name"},
 		"reserved timestamp":       {raw: "timestamp:instance", errContains: "reserved column name"},
 		"reserved tags":            {raw: "tags:instance", errContains: "reserved column name"},
+		// BigQuery would reject the table itself for these, so catching them at
+		// startup is the difference between a clear error and a per-row failure.
+		"duplicate column differing only in case": {
+			raw:         "hostname:instance,Hostname:node",
+			errContains: "mapped more than once",
+		},
+		"reserved column differing only in case": {
+			raw:         "Value:instance",
+			errContains: "reserved column name",
+		},
+		"reserved column upper case": {
+			raw:         "METRICNAME:instance",
+			errContains: "reserved column name",
+		},
 	}
 
 	for name, tc := range testCases {
@@ -131,6 +146,10 @@ func TestParsePromotedLabelsRejectsEveryCoreColumn(t *testing.T) {
 			_, err := parsePromotedLabels(column + ":instance")
 
 			assert.Error(t, err)
+
+			_, err = parsePromotedLabels(strings.ToUpper(column) + ":instance")
+
+			assert.Error(t, err, "core column must stay reserved regardless of case")
 		})
 	}
 }
